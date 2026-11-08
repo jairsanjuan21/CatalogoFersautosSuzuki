@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+/* Tokens de diseño de los prototipos aprobados.
+   Uso en Tailwind: bg-fondo, bg-superficie, text-texto, text-texto-2,
+   border-linea, bg-azul, text-azul-texto, bg-cielo, text-senal, etc. */
+:root {
+  --fondo: #f3f6fa;
+  --superficie: #ffffff;
+  --texto: #1a2330;
+  --texto-2: #556073;
+  --linea: #d5dce6;
+  --linea-2: #b9c3d1;
+  --cielo: #e6edf8;
+  --azul: #1f4e9c;
+  --azul-hover: #173d7c;
+  --azul-texto: #1f4e9c;
+  --asfalto: #2b313b;
+  --marca-via: #f2c94c;
+  --senal: #c9302c;
+  --senal-fondo: #fcebea;
+  --ok: #1c7a4e;
+  --ok-fondo: #e5f4ec;
+  --ambar: #8a5a00;
+  --ambar-fondo: #fdf1d8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fondo: #0f1622;
+    --superficie: #172130;
+    --texto: #e6ebf2;
+    --texto-2: #9ca8ba;
+    --linea: #2a3647;
+    --linea-2: #3b4a5f;
+    --cielo: #1b2a42;
+    --azul: #3a6cc4;
+    --azul-hover: #4b7cd3;
+    --azul-texto: #8fb3f0;
+    --asfalto: #3a4352;
+    --senal: #f07a75;
+    --senal-fondo: #3a1e20;
+    --ok: #6fd3a0;
+    --ok-fondo: #16322a;
+    --ambar: #f2c46b;
+    --ambar-fondo: #3a2e14;
+  }
+}
+
+@theme inline {
+  --color-fondo: var(--fondo);
+  --color-superficie: var(--superficie);
+  --color-texto: var(--texto);
+  --color-texto-2: var(--texto-2);
+  --color-linea: var(--linea);
+  --color-linea-2: var(--linea-2);
+  --color-cielo: var(--cielo);
+  --color-azul: var(--azul);
+  --color-azul-hover: var(--azul-hover);
+  --color-azul-texto: var(--azul-texto);
+  --color-asfalto: var(--asfalto);
+  --color-marca-via: var(--marca-via);
+  --color-senal: var(--senal);
+  --color-senal-fondo: var(--senal-fondo);
+  --color-ok: var(--ok);
+  --color-ok-fondo: var(--ok-fondo);
+  --color-ambar: var(--ambar);
+  --color-ambar-fondo: var(--ambar-fondo);
+  --font-sans: var(--font-sans-base), system-ui, sans-serif;
+  --font-display: var(--font-display), "Arial Narrow", system-ui, sans-serif;
+}
+
+body {
+  background: var(--fondo);
+  color: var(--texto);
+}

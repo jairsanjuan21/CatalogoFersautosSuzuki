@@ -1,0 +1,117 @@
+{
+  "id": "e1eedaa0-f259-4f8a-af17-bd64bf6b2990",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.configuracion": {
+      "name": "configuracion",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "smallint",
+          "primaryKey": true,
+          "notNull": true,
+          "default": 1
+        },
+        "asesora_nombre": {
+          "name": "asesora_nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asesora_cc": {
+          "name": "asesora_cc",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asesora_whatsapp": {
+          "name": "asesora_whatsapp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ciudad": {
+          "name": "ciudad",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Cúcuta'"
+        },
+        "sede": {
+          "name": "sede",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "marca_por_defecto": {
+          "name": "marca_por_defecto",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Suzuki'"
+        },
+        "plan_financiacion": {
+          "name": "plan_financiacion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Tradicional'"
+        },
+        "plazos_meses": {
+          "name": "plazos_meses",
+          "type": "integer[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{12,24,36,48,60,72,84}'"
+        },
+        "dias_vigencia_precio": {
+          "name": "dias_vigencia_precio",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 7
+        },
+        "dias_retencion_documentos": {
+          "name": "dias_retencion_documentos",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 90
+        },
+        "actualizado_en": {
+          "name": "actualizado_en",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "configuracion_fila_unica": {
+          "name": "configuracion_fila_unica",
+          "value": "\"configuracion\".\"id\" = 1"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
