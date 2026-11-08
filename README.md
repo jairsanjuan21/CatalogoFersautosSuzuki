@@ -57,6 +57,18 @@ npm run dev
 
 Nunca edites a mano una migración que ya está en `main`.
 
+### Reglas que viven en la base de datos
+
+Algunas cosas no se pueden expresar en `esquema.ts` (triggers, vistas). Para eso se crea una
+migración vacía y se escribe el SQL a mano:
+
+```bash
+npm run db:generate -- --custom --name descripcion
+```
+
+La migración `0002_reglas_y_vistas.sql` es un ejemplo: hace que la tabla `auditoria` sea de
+solo inserción y crea la vista `precios_vigentes`.
+
 ## Estructura
 
 ```
@@ -66,7 +78,8 @@ src/
 ├── db/
 │   ├── esquema.ts       # Tablas (Drizzle)
 │   ├── index.ts         # Conexión a PostgreSQL
-│   ├── semilla.ts       # Datos iniciales
+│   ├── semilla.ts       # Datos base y de ejemplo (idempotente)
+│   ├── clausula-v1.ts   # Texto de la autorización del F-NS-01
 │   └── migraciones/     # SQL versionado
 docker-compose.yml       # Servicios de apoyo (PostgreSQL)
 ```
