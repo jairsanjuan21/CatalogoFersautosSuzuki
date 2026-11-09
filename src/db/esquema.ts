@@ -96,6 +96,83 @@ export const origenPrecio = pgEnum("origen_precio", ["manual", "pdf_ia"]);
 export const actor = pgEnum("actor", ["cliente", "asesora", "admin", "sistema"]);
 
 /* ============================================================================
+   AUTENTICACIÓN (Better Auth)
+   Los nombres en inglés son los que espera la librería; así su documentación
+   aplica tal cual. Solo hay dos cuentas: Natalia (asesora) y Jair (admin).
+   ========================================================================== */
+
+export const user = pgTable(
+  "user",
+  {
+    id: text().primaryKey(),
+    name: text().notNull(),
+    email: text().notNull().unique(),
+    emailVerified: boolean().notNull().default(false),
+    image: text(),
+    role: text().notNull().default("asesora"),
+    banned: boolean().default(false), // "desactivar cuenta" desde el panel de admin
+    banReason: text(),
+    banExpires: timestamp({ withTimezone: true }),
+    createdAt: creadoEn(),
+    updatedAt: actualizadoEn(),
+  },
+  (t) => [check("user_rol_valido", sql`${t.role} in ('asesora', 'admin')`)],
+);
+
+export const session = pgTable(
+  "session",
+  {
+    id: text().primaryKey(),
+    expiresAt: timestamp({ withTimezone: true }).notNull(),
+    token: text().notNull().unique(),
+    createdAt: creadoEn(),
+    updatedAt: actualizadoEn(),
+    ipAddress: text(),
+    userAgent: text(),
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    impersonatedBy: text(),
+  },
+  (t) => [index("session_usuario").on(t.userId)],
+);
+
+export const account = pgTable(
+  "account",
+  {
+    id: text().primaryKey(),
+    accountId: text().notNull(),
+    providerId: text().notNull(),
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    accessToken: text(),
+    refreshToken: text(),
+    idToken: text(),
+    accessTokenExpiresAt: timestamp({ withTimezone: true }),
+    refreshTokenExpiresAt: timestamp({ withTimezone: true }),
+    scope: text(),
+    password: text(), // hash, nunca la contraseña
+    createdAt: creadoEn(),
+    updatedAt: actualizadoEn(),
+  },
+  (t) => [index("account_usuario").on(t.userId)],
+);
+
+export const verification = pgTable(
+  "verification",
+  {
+    id: text().primaryKey(),
+    identifier: text().notNull(),
+    value: text().notNull(),
+    expiresAt: timestamp({ withTimezone: true }).notNull(),
+    createdAt: creadoEn(),
+    updatedAt: actualizadoEn(),
+  },
+  (t) => [index("verification_identificador").on(t.identifier)],
+);
+
+/* ============================================================================
    CONFIGURACIÓN Y CLÁUSULAS
    ========================================================================== */
 
@@ -186,7 +263,7 @@ export const precios = pgTable(
     vigenteDesde: timestamp({ withTimezone: true }).notNull().defaultNow(),
     origen: origenPrecio().notNull().default("manual"),
     loteId: uuid(), // agrupa los precios que llegaron en un mismo PDF
-    usuarioId: text(),
+    usuarioId: text().references(() => user.id, { onDelete: "set null" }),
   },
   (t) => [
     check("precios_positivo", sql`${t.precioLista} > 0`),
@@ -425,7 +502,7 @@ export const historial = pgTable(
       .notNull()
       .references(() => solicitudes.id, { onDelete: "cascade" }),
     actor: actor().notNull(),
-    usuarioId: text(),
+    usuarioId: text().references(() => user.id, { onDelete: "set null" }),
     descripcion: text().notNull(),
     datos: jsonb().$type<{ campo?: string; antes?: unknown; despues?: unknown }>(),
     creadoEn: creadoEn(),
@@ -441,7 +518,7 @@ export const notas = pgTable(
       .notNull()
       .references(() => solicitudes.id, { onDelete: "cascade" }),
     texto: text().notNull(),
-    usuarioId: text(),
+    usuarioId: text().references(() => user.id, { onDelete: "set null" }),
     creadoEn: creadoEn(),
   },
   (t) => [index("notas_solicitud_fecha").on(t.solicitudId, t.creadoEn)],
@@ -471,6 +548,8 @@ export const enviosTelegram = pgTable(
    AUDITORÍA
    Solo se puede insertar. Un trigger (migración de reglas) bloquea UPDATE y
    DELETE, salvo borrar registros con más de un año.
+   usuarioId NO es llave foránea a propósito: el registro debe sobrevivir
+   aunque algún día se borre el usuario, y el trigger impediría ponerlo en null.
    ========================================================================== */
 
 export const auditoria = pgTable(

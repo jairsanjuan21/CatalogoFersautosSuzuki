@@ -8,7 +8,12 @@ const globalParaDb = globalThis as unknown as { pool?: Pool };
 
 const pool =
   globalParaDb.pool ??
-  new Pool({ connectionString: process.env.DATABASE_URL, max: 10 });
+  new Pool({
+    connectionString: process.env.DATABASE_URL,
+    max: 10,
+    idleTimeoutMillis: 30_000,
+    allowExitOnIdle: true, // deja terminar procesos como el build o los scripts
+  });
 
 if (process.env.NODE_ENV !== "production") globalParaDb.pool = pool;
 

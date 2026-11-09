@@ -22,6 +22,8 @@ npm run db:seed              # 5. Carga la configuración inicial
 npm run dev                  # 6. Inicia la app
 ```
 
+Para entrar a los paneles necesitas cuentas (ver **Cuentas** más abajo).
+
 Abre <http://localhost:3000/estado>. Debe decir **Conectada** y mostrar los datos de la asesora.
 
 ## Día a día
@@ -30,6 +32,22 @@ Abre <http://localhost:3000/estado>. Debe decir **Conectada** y mostrar los dato
 npm run db:up      # si Docker se reinició
 npm run dev
 ```
+
+## Cuentas
+
+Nadie se puede registrar desde la página: las dos cuentas se crean por consola.
+La contraseña se genera al azar y se muestra **una sola vez**.
+
+```bash
+npm run usuario:crear -- --nombre "Natalia García" --correo natalia@correo.com --rol asesora
+npm run usuario:crear -- --nombre "Jair" --correo jair@correo.com --rol admin
+
+# Asignar una contraseña nueva (cierra todas sus sesiones abiertas)
+npm run usuario:crear -- --correo natalia@correo.com --nueva-clave
+```
+
+Luego entra en <http://localhost:3000/ingresar>. La asesora llega a `/panel` y el admin a `/admin`;
+cada uno es redirigido si intenta entrar a la zona del otro.
 
 ## Scripts
 
@@ -46,6 +64,7 @@ npm run dev
 | `npm run db:studio` | Abre Drizzle Studio para ver y editar datos en el navegador |
 | `npm run db:seed` | Carga datos iniciales (se puede correr varias veces) |
 | `npm run db:reset` | **Borra la base de datos local** y la recrea desde cero |
+| `npm run usuario:crear` | Crea una cuenta o le asigna contraseña nueva (ver **Cuentas**) |
 
 ## Flujo para cambiar la base de datos
 
@@ -74,7 +93,17 @@ solo inserción y crea la vista `precios_vigentes`.
 ```
 src/
 ├── app/                 # Páginas y rutas (App Router)
+│   ├── api/auth/        # Endpoints de Better Auth
+│   ├── ingresar/        # Inicio de sesión
+│   ├── panel/           # Zona de Natalia (rol asesora)
+│   ├── admin/           # Zona del administrador
 │   └── estado/          # Verificación del entorno
+├── lib/
+│   ├── auth.ts          # Configuración de Better Auth (servidor)
+│   ├── auth-cliente.ts  # Cliente de Better Auth (navegador)
+│   └── sesion.ts        # usuarioActual() y exigirRol()
+├── proxy.ts             # Revisión rápida de sesión antes de /panel y /admin
+├── scripts/             # Tareas de consola (crear usuarios)
 ├── db/
 │   ├── esquema.ts       # Tablas (Drizzle)
 │   ├── index.ts         # Conexión a PostgreSQL
@@ -90,4 +119,5 @@ docker-compose.yml       # Servicios de apoyo (PostgreSQL)
 - **`Cannot connect to the Docker daemon` o `docker: command not found`:** abre Docker Desktop y espera a que diga *Engine running*.
 - **`ECONNREFUSED` en /estado:** el contenedor no está corriendo. `npm run db:up`.
 - **`password authentication failed`:** cambiaste las credenciales después de crear el volumen. Corre `npm run db:reset`.
+- **`BETTER_AUTH_SECRET` no definido o errores de sesión:** agrega las variables de autenticación de `.env.example` a tu `.env`.
 - **Windows:** usa Docker Desktop con el backend WSL 2 (viene así por defecto).
