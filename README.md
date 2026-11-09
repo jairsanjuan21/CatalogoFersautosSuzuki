@@ -70,6 +70,7 @@ cada uno es redirigido si intenta entrar a la zona del otro.
 | `npm run db:seed` | Carga datos iniciales (se puede correr varias veces) |
 | `npm run db:reset` | **Borra la base de datos local** y la recrea desde cero |
 | `npm run usuario:crear` | Crea una cuenta o le asigna contraseña nueva (ver **Cuentas**) |
+| `npm run pdf:prueba -- --radicado FS-...` | Genera los PDF de una solicitud en `pdf-pruebas/` para revisarlos |
 
 ## Flujo para cambiar la base de datos
 
@@ -93,6 +94,20 @@ npm run db:generate -- --custom --name descripcion
 La migración `0002_reglas_y_vistas.sql` es un ejemplo: hace que la tabla `auditoria` sea de
 solo inserción y crea la vista `precios_vigentes`.
 
+## PDF del formulario F-NS-01
+
+`plantillas/F-NS-01.pdf` es el formato oficial de Fersautos (versión 1, 5/04/2016). Es un PDF sin
+campos editables, así que cada dato se estampa en coordenadas medidas sobre el original
+(`src/modulos/pdf/coordenadas-fns01.ts`). Si Fersautos cambia el formato:
+
+1. Reemplaza `plantillas/F-NS-01.pdf`.
+2. Ajusta las coordenadas que cambiaron en `coordenadas-fns01.ts`.
+3. Revisa el resultado con `npm run pdf:prueba -- --radicado FS-...`.
+
+Natalia descarga los PDF desde `GET /api/solicitudes/:id/pdf?tipo=formulario|cedula`. Solo la
+cuenta de asesora puede hacerlo, el formulario exige que la solicitud tenga valor del vehículo y
+cada descarga queda en la auditoría con la huella SHA-256 del archivo.
+
 ## Estructura
 
 ```
@@ -100,16 +115,19 @@ src/
 ├── app/                 # Páginas y rutas (App Router)
 │   ├── api/auth/        # Endpoints de Better Auth
 │   ├── ingresar/        # Inicio de sesión
-│   ├── panel/           # Zona de Natalia (rol asesora)
+│   ├── panel/           # Zona de Natalia (rol asesora): inicio, solicitudes, compartir
 │   ├── admin/           # Zona del administrador
 │   └── estado/          # Verificación del entorno
 │   ├── credito/         # Formulario de solicitud de crédito (público)
 │   └── api/solicitudes/ # Recibe el formulario: valida, guarda archivos y datos
 ├── validacion/          # Esquemas Zod compartidos entre navegador y servidor
-├── modulos/             # Lógica de negocio (crear solicitud, etc.)
+├── modulos/
+│   ├── solicitudes/     # Crear, consultar y acciones del panel (Server Actions)
+│   └── pdf/             # F-NS-01 diligenciado, PDF de la cédula y sus coordenadas
 ├── lib/
 │   ├── almacenamiento.ts # Guardar archivos (local en desarrollo, R2 en producción)
 │   ├── limite.ts        # Límite de envíos por IP
+│   ├── etiquetas.ts     # Textos de estados y orígenes
 │   ├── auth.ts          # Configuración de Better Auth (servidor)
 │   ├── auth-cliente.ts  # Cliente de Better Auth (navegador)
 │   └── sesion.ts        # usuarioActual() y exigirRol()
@@ -121,6 +139,7 @@ src/
 │   ├── semilla.ts       # Datos base y de ejemplo (idempotente)
 │   ├── clausula-v1.ts   # Texto de la autorización del F-NS-01
 │   └── migraciones/     # SQL versionado
+plantillas/F-NS-01.pdf   # Formato oficial de Fersautos
 docker-compose.yml       # Servicios de apoyo (PostgreSQL)
 ```
 

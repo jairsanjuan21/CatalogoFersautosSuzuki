@@ -16,12 +16,14 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/db/semilla.ts",
     "db:reset": "docker compose down -v && docker compose up -d --wait && drizzle-kit migrate && tsx src/db/semilla.ts",
-    "usuario:crear": "tsx --conditions=react-server src/scripts/crear-usuario.ts"
+    "usuario:crear": "tsx --conditions=react-server src/scripts/crear-usuario.ts",
+    "pdf:prueba": "tsx --conditions=react-server src/scripts/pdf-prueba.ts"
   },
   "dependencies": {
     "better-auth": "^1.7.18",
     "drizzle-orm": "^0.45.4",
     "next": "16.4.5",
+    "pdf-lib": "^1.17.1",
     "pg": "^8.23.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
