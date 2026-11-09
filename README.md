@@ -24,6 +24,11 @@ npm run dev                  # 6. Inicia la app
 
 Para entrar a los paneles necesitas cuentas (ver **Cuentas** más abajo).
 
+El formulario de crédito está en <http://localhost:3000/credito>. Prueba también
+<http://localhost:3000/credito?origen=instagram&linea=Swift>: registra de qué red llegó el
+cliente y preselecciona el modelo. Las fotos y firmas se guardan en la carpeta `almacenamiento/`
+(ignorada por Git).
+
 Abre <http://localhost:3000/estado>. Debe decir **Conectada** y mostrar los datos de la asesora.
 
 ## Día a día
@@ -98,7 +103,13 @@ src/
 │   ├── panel/           # Zona de Natalia (rol asesora)
 │   ├── admin/           # Zona del administrador
 │   └── estado/          # Verificación del entorno
+│   ├── credito/         # Formulario de solicitud de crédito (público)
+│   └── api/solicitudes/ # Recibe el formulario: valida, guarda archivos y datos
+├── validacion/          # Esquemas Zod compartidos entre navegador y servidor
+├── modulos/             # Lógica de negocio (crear solicitud, etc.)
 ├── lib/
+│   ├── almacenamiento.ts # Guardar archivos (local en desarrollo, R2 en producción)
+│   ├── limite.ts        # Límite de envíos por IP
 │   ├── auth.ts          # Configuración de Better Auth (servidor)
 │   ├── auth-cliente.ts  # Cliente de Better Auth (navegador)
 │   └── sesion.ts        # usuarioActual() y exigirRol()
