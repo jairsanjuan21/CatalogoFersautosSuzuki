@@ -1,8 +1,8 @@
 import "dotenv/config";
 import { parseArgs } from "node:util";
-import { randomInt } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { generarClave } from "@/lib/claves";
 import { db, pool } from "@/db";
 import * as t from "@/db/esquema";
 
@@ -19,11 +19,6 @@ const AYUDA = `Uso:
   npm run usuario:crear -- --nombre "Nombre" --correo correo@ejemplo.com --rol asesora|admin
   npm run usuario:crear -- --correo correo@ejemplo.com --nueva-clave`;
 
-function generarClave(largo = 16) {
-  // Sin caracteres que se confunden al dictarlos (0/O, 1/l/I)
-  const abc = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
-  return Array.from({ length: largo }, () => abc[randomInt(abc.length)]).join("");
-}
 
 async function main() {
   const { values } = parseArgs({

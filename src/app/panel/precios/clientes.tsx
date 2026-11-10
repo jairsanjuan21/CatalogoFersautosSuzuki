@@ -9,6 +9,7 @@ import {
   type ResultadoPrecios,
 } from "@/modulos/precios/acciones";
 import { plata } from "@/lib/formato";
+import { useFormularioAccion } from "@/lib/usar-formulario";
 
 const inicial: ResultadoPrecios = { ok: true };
 const claseInput =
@@ -144,11 +145,11 @@ function InterruptorPrecio({ modeloId, mostrar }: { modeloId: string; mostrar: b
 /* ---------- promociones ---------- */
 
 export function FormularioPromocion({ modelos, hoy }: { modelos: { id: string; linea: string }[]; hoy: string }) {
-  const [estado, accion, guardando] = useActionState(crearPromocion, inicial);
+  // Se limpia solo si se guardó: con un error, lo escrito se conserva
+  const { ref, alEnviar, estado, pendiente: guardando } = useFormularioAccion(crearPromocion, inicial);
   const err = estado.errores ?? {};
   return (
-    // Aquí sí queremos que el formulario se limpie al guardar: se usa action={...}
-    <form action={accion} className="mt-3 rounded-xl border border-linea bg-superficie p-4">
+    <form ref={ref} onSubmit={alEnviar} className="mt-3 rounded-xl border border-linea bg-superficie p-4">
       <strong className="font-display text-lg">Nueva promoción</strong>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <div>

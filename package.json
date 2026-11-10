@@ -17,7 +17,8 @@
     "db:seed": "tsx src/db/semilla.ts",
     "db:reset": "docker compose down -v && docker compose up -d --wait && drizzle-kit migrate && tsx src/db/semilla.ts",
     "usuario:crear": "tsx --conditions=react-server src/scripts/crear-usuario.ts",
-    "pdf:prueba": "tsx --conditions=react-server src/scripts/pdf-prueba.ts"
+    "pdf:prueba": "tsx --conditions=react-server src/scripts/pdf-prueba.ts",
+    "retencion": "tsx --conditions=react-server src/scripts/retencion.ts"
   },
   "dependencies": {
     "better-auth": "^1.7.18",

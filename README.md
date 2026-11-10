@@ -71,6 +71,7 @@ cada uno es redirigido si intenta entrar a la zona del otro.
 | `npm run db:reset` | **Borra la base de datos local** y la recrea desde cero |
 | `npm run usuario:crear` | Crea una cuenta o le asigna contraseña nueva (ver **Cuentas**) |
 | `npm run pdf:prueba -- --radicado FS-...` | Genera los PDF de una solicitud en `pdf-pruebas/` para revisarlos |
+| `npm run retencion` | Borra fotos de cédula y firmas de solicitudes cerradas hace más de N días (`-- --simular` solo cuenta) |
 
 ## Flujo para cambiar la base de datos
 
@@ -124,7 +125,8 @@ src/
 │   ├── api/auth/        # Endpoints de Better Auth
 │   ├── ingresar/        # Inicio de sesión
 │   ├── panel/           # Zona de Natalia (rol asesora): inicio, solicitudes, compartir
-│   ├── admin/           # Zona del administrador: resumen y catálogo maestro
+│   ├── admin/           # Zona del administrador: resumen, catálogo, configuración,
+│   │                    #   usuarios, auditoría, sistema y datos personales
 │   └── estado/          # Verificación del entorno
 │   ├── credito/         # Formulario de solicitud de crédito (público)
 │   └── api/solicitudes/ # Recibe el formulario: valida, guarda archivos y datos

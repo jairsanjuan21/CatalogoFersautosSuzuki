@@ -94,6 +94,8 @@ export const tipoArchivo = pgEnum("tipo_archivo", [
 ]);
 export const origenPrecio = pgEnum("origen_precio", ["manual", "pdf_ia"]);
 export const actor = pgEnum("actor", ["cliente", "asesora", "admin", "sistema"]);
+export const tipoPeticion = pgEnum("tipo_peticion", ["consulta", "correccion", "eliminacion", "revocatoria"]);
+export const estadoPeticion = pgEnum("estado_peticion", ["pendiente", "atendida", "rechazada"]);
 
 /* ============================================================================
    AUTENTICACIÓN (Better Auth)
@@ -548,6 +550,30 @@ export const enviosTelegram = pgTable(
       .on(t.borrarDespuesDe)
       .where(sql`${t.borradoEn} is null`),
   ],
+);
+
+/* ============================================================================
+   PETICIONES DE TITULARES (Ley 1581 de 2012)
+   Cuando un cliente pide consultar, corregir o borrar sus datos. La ley da 10
+   días hábiles para consultas y 15 para reclamos. Al cerrarse, el documento
+   se guarda enmascarado: ya no hace falta completo.
+   ========================================================================== */
+
+export const peticionesTitulares = pgTable(
+  "peticiones_titulares",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    tipo: tipoPeticion().notNull(),
+    estado: estadoPeticion().notNull().default("pendiente"),
+    nombre: text().notNull(),
+    numeroIdentificacion: text().notNull(),
+    canal: text().notNull(), // WhatsApp, correo, presencial...
+    detalle: text(),
+    recibidaEn: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    atendidaEn: timestamp({ withTimezone: true }),
+    respuesta: text(),
+  },
+  (t) => [index("peticiones_estado").on(t.estado, t.recibidaEn)],
 );
 
 /* ============================================================================

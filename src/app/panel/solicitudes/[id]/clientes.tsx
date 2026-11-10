@@ -1,9 +1,10 @@
 "use client";
 
-import { startTransition, useActionState, useEffect, useRef, useState, useTransition, type FormEvent } from "react";
+import { startTransition, useActionState, useEffect, useState, useTransition, type FormEvent } from "react";
 import { agregarNota, asignarValor, cambiarEstado, marcarCargada, marcarVista, type Resultado } from "@/modulos/solicitudes/acciones";
 import { ESTADOS, type Estado } from "@/lib/etiquetas";
 import { plata } from "@/lib/formato";
+import { useFormularioAccion } from "@/lib/usar-formulario";
 
 const inicial: Resultado = { ok: true };
 
@@ -200,15 +201,10 @@ export function BotonCargada({ solicitudId }: { solicitudId: string }) {
 
 /* ---------- notas ---------- */
 
-// La nota SÍ usa action={...}: aquí el reinicio automático es justo lo que queremos.
 export function FormularioNota({ solicitudId }: { solicitudId: string }) {
-  const [estado, accion, guardando] = useActionState(agregarNota, inicial);
-  const formulario = useRef<HTMLFormElement>(null);
-  useEffect(() => {
-    if (estado.ok && estado.mensaje) formulario.current?.reset();
-  }, [estado]);
+  const { ref, alEnviar, estado, pendiente: guardando } = useFormularioAccion(agregarNota, inicial);
   return (
-    <form ref={formulario} action={accion}>
+    <form ref={ref} onSubmit={alEnviar}>
       <input type="hidden" name="solicitudId" value={solicitudId} />
       <label htmlFor="nota" className="sr-only">Nueva nota</label>
       <textarea
