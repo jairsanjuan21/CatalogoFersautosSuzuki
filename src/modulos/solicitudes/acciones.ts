@@ -1,16 +1,14 @@
 "use server";
 
-import { headers } from "next/headers";
 import { refresh } from "next/cache";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import * as t from "@/db/esquema";
-import { auth } from "@/lib/auth";
+import { exigirAsesora } from "@/lib/autorizacion";
 import { ESTADOS, ESTADOS_CERRADOS, type Estado } from "@/lib/etiquetas";
 import { plata } from "@/lib/formato";
-import { ipDeLaPeticion } from "@/lib/limite";
-import { PLAZOS } from "@/validacion/solicitud";
+import { erroresPorCampo, PLAZOS } from "@/validacion/solicitud";
 
 /* ============================================================================
    ACCIONES DEL PANEL DE NATALIA
@@ -24,13 +22,6 @@ export interface Resultado {
   errores?: Record<string, string>;
 }
 
-async function exigirAsesora() {
-  const h = await headers();
-  const sesion = await auth.api.getSession({ headers: h });
-  if (!sesion || sesion.user.role !== "asesora") throw new Error("No autorizado");
-  const ip = ipDeLaPeticion(h);
-  return { usuarioId: sesion.user.id, ip: ip === "desconocida" ? null : ip };
-}
 
 const id = z.uuid();
 const pesos = z.coerce.number({ error: "Escribe un valor." }).int().positive({ error: "Escribe un valor mayor que cero." });
@@ -64,9 +55,8 @@ const esquemaValor = z
 export async function asignarValor(_previo: Resultado, formulario: FormData): Promise<Resultado> {
   const { usuarioId, ip } = await exigirAsesora();
   const r = esquemaValor.safeParse(Object.fromEntries(formulario));
-  if (!r.success) {
-    return { ok: false, errores: Object.fromEntries(r.error.issues.map((i) => [String(i.path[0]), i.message])) };
-  }
+  // erroresPorCampo se queda con el PRIMER error de cada campo (el más útil para la persona)
+  if (!r.success) return { ok: false, errores: erroresPorCampo(r.error) };
   const d = r.data;
 
   const [actual] = await db.select().from(t.solicitudes).where(eq(t.solicitudes.id, d.solicitudId));
