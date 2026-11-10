@@ -1,12 +1,14 @@
 import { Suspense } from "react";
 import { exigirRol } from "@/lib/sesion";
 import { BotonSalir } from "@/componentes/BotonSalir";
+import { datosAsesora } from "@/modulos/catalogo/consultas";
 import { Cargando, Titulo } from "../componentes";
+import { FormularioPerfil } from "./FormularioPerfil";
 
 export default function Perfil() {
   return (
     <>
-      <Titulo>Mi perfil</Titulo>
+      <Titulo sub="Así te presentas en el catálogo y en el formulario de crédito.">Mi perfil</Titulo>
       <Suspense fallback={<Cargando />}>
         <Contenido />
       </Suspense>
@@ -15,15 +17,18 @@ export default function Perfil() {
 }
 
 async function Contenido() {
-  const u = await exigirRol("asesora");
+  const usuario = await exigirRol("asesora");
+  const a = await datosAsesora();
+  if (!a) return null;
   return (
-    <div className="mt-5 rounded-xl border border-linea bg-superficie p-4">
-      <p className="font-semibold">{u.name}</p>
-      <p className="text-texto-2">{u.email}</p>
-      <p className="mt-3 text-[15px] text-texto-2">La foto, la frase de presentación y el WhatsApp para el catálogo llegan en la fase 4.</p>
-      <div className="mt-4">
+    <>
+      <FormularioPerfil nombre={a.nombre} frase={a.frase} whatsapp={a.whatsapp} />
+      <p className="mt-3 text-sm text-texto-2">La foto se podrá subir cuando agreguemos las fotos reales al catálogo.</p>
+      <h2 className="font-display mt-8 mb-2.5 text-[22px] font-semibold">Cuenta</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-linea bg-superficie p-4">
+        <span className="text-texto-2">{usuario.email}</span>
         <BotonSalir />
       </div>
-    </div>
+    </>
   );
 }

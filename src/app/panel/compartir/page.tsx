@@ -32,7 +32,10 @@ async function Contenido() {
           <CopiarEnlace key={origen} etiqueta={red} url={`${base}/credito?origen=${origen}`} />
         ))}
       </div>
-      <p className="mt-3 text-sm text-texto-2">El código QR y el enlace al catálogo llegan en la fase 4.</p>
+      <h2 className="font-display mt-7 mb-2.5 text-[22px] font-semibold">Catálogo</h2>
+      <div className="rounded-xl border border-linea bg-superficie p-4">
+        <CopiarEnlace etiqueta="Página principal" url={base} />
+      </div>
     </>
   );
 }

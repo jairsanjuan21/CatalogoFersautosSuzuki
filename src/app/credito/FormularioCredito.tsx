@@ -16,7 +16,7 @@ import {
   pasoReferencias,
   pasoVehiculo,
 } from "@/validacion/solicitud";
-import { escribir, leer, plata } from "@/lib/formato";
+import { escribir, leer, nombreDeAsesora, plata } from "@/lib/formato";
 import {
   Chips,
   Digitos,
@@ -155,17 +155,6 @@ const pasoDelError = (clave: string) => {
   const i = PASOS.findIndex((p) => p.clave === raiz);
   return i === -1 ? PASOS.length - 1 : i;
 };
-
-/**
- * "Dayerly Natalia Garcia Sierra" → { visible: "Natalia Garcia", primero: "Natalia" }.
- * Con cuatro palabras (dos nombres y dos apellidos) se usa el segundo nombre,
- * que es como ella se presenta a sus clientes.
- */
-function nombreDeAsesora(completo: string) {
-  const p = completo.trim().split(/\s+/);
-  const visible = p.length >= 4 ? `${p[1]} ${p[2]}` : p.length === 3 ? `${p[0]} ${p[1]}` : completo;
-  return { visible, primero: visible.split(" ")[0] };
-}
 
 const opciones = <T extends Record<string, string>>(o: T) => Object.entries(o) as [keyof T & string, string][];
 const SI_NO: [boolean, string][] = [

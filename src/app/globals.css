@@ -73,3 +73,10 @@ body {
   background: var(--fondo);
   color: var(--texto);
 }
+
+/* Carro que cruza la carretera del catálogo una sola vez al cargar */
+@keyframes rodar {
+  to {
+    left: calc(100% - 66px);
+  }
+}

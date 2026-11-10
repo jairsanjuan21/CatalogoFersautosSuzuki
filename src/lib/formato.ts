@@ -20,3 +20,18 @@ export function escribir<T>(obj: T, ruta: string, valor: unknown): T {
   }
   return copia as T;
 }
+
+/**
+ * "Dayerly Natalia Garcia Sierra" → { visible: "Natalia Garcia", primero: "Natalia" }.
+ * Con cuatro palabras (dos nombres y dos apellidos) se usa el segundo nombre,
+ * que es como ella se presenta a sus clientes.
+ */
+export function nombreDeAsesora(completo: string) {
+  const p = completo.trim().split(/\s+/);
+  const visible = p.length >= 4 ? `${p[1]} ${p[2]}` : p.length === 3 ? `${p[0]} ${p[1]}` : completo;
+  return { visible, primero: visible.split(" ")[0] };
+}
+
+/** Enlace de WhatsApp con mensaje ya escrito (número colombiano de 10 dígitos). */
+export const enlaceWhatsapp = (celular: string, mensaje: string) =>
+  `https://wa.me/57${celular}?text=${encodeURIComponent(mensaje)}`;

@@ -184,6 +184,7 @@ export const configuracion = pgTable(
     asesoraNombre: text().notNull(),
     asesoraCc: text().notNull(),
     asesoraWhatsapp: text(),
+    asesoraFrase: text().notNull().default("Te acompaño en todo el proceso para que estrenes tu Suzuki."),
     ciudad: text().notNull().default("Cúcuta"),
     sede: text().notNull(),
     marcaPorDefecto: text().notNull().default("Suzuki"),
@@ -193,7 +194,11 @@ export const configuracion = pgTable(
     diasRetencionDocumentos: smallint().notNull().default(90),
     actualizadoEn: actualizadoEn(),
   },
-  (t) => [check("configuracion_fila_unica", sql`${t.id} = 1`)],
+  (t) => [
+    check("configuracion_fila_unica", sql`${t.id} = 1`),
+    check("configuracion_frase_corta", sql`char_length(${t.asesoraFrase}) <= 140`),
+    check("configuracion_whatsapp", sql`${t.asesoraWhatsapp} is null or ${t.asesoraWhatsapp} ~ '^3[0-9]{9}$'`),
+  ],
 );
 
 /** Versiones del texto de autorización. Cada solicitud guarda cuál aceptó el cliente. */

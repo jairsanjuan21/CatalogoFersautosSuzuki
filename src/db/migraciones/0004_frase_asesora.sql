@@ -1,0 +1,3 @@
+ALTER TABLE "configuracion" ADD COLUMN "asesora_frase" text DEFAULT 'Te acompaño en todo el proceso para que estrenes tu Suzuki.' NOT NULL;--> statement-breakpoint
+ALTER TABLE "configuracion" ADD CONSTRAINT "configuracion_frase_corta" CHECK (char_length("configuracion"."asesora_frase") <= 140);--> statement-breakpoint
+ALTER TABLE "configuracion" ADD CONSTRAINT "configuracion_whatsapp" CHECK ("configuracion"."asesora_whatsapp" is null or "configuracion"."asesora_whatsapp" ~ '^3[0-9]{9}$');
