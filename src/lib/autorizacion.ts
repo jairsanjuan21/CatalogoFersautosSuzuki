@@ -15,3 +15,12 @@ export async function exigirAsesora() {
   const ip = ipDeLaPeticion(h);
   return { usuarioId: sesion.user.id, ip: ip === "desconocida" ? null : ip };
 }
+
+/** Igual que exigirAsesora, pero para la cuenta de administrador. */
+export async function exigirAdmin() {
+  const h = await headers();
+  const sesion = await auth.api.getSession({ headers: h });
+  if (!sesion || sesion.user.role !== "admin") throw new Error("No autorizado");
+  const ip = ipDeLaPeticion(h);
+  return { usuarioId: sesion.user.id, ip: ip === "desconocida" ? null : ip };
+}

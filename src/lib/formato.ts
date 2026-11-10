@@ -35,3 +35,12 @@ export function nombreDeAsesora(completo: string) {
 /** Enlace de WhatsApp con mensaje ya escrito (número colombiano de 10 dígitos). */
 export const enlaceWhatsapp = (celular: string, mensaje: string) =>
   `https://wa.me/57${celular}?text=${encodeURIComponent(mensaje)}`;
+
+/** "S-Presso GL" → "s-presso-gl" (para las direcciones del catálogo) */
+export const aSlug = (texto: string) =>
+  texto
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");

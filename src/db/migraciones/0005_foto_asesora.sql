@@ -1,0 +1,1 @@
+ALTER TABLE "configuracion" ADD COLUMN "asesora_foto" text;

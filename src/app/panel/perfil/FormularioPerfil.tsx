@@ -2,11 +2,12 @@
 
 import { startTransition, useActionState, useState, type FormEvent } from "react";
 import { guardarPerfil, type ResultadoPerfil } from "@/modulos/perfil/acciones";
+import { FotoPerfil } from "./FotoPerfil";
 
 const claseInput =
   "min-h-11 w-full rounded-lg border border-linea-2 bg-superficie px-3 text-base outline-none focus:border-azul focus:ring-2 focus:ring-azul/40 aria-invalid:border-senal";
 
-export function FormularioPerfil({ nombre, frase: fraseInicial, whatsapp: waInicial }: { nombre: string; frase: string; whatsapp: string | null }) {
+export function FormularioPerfil({ nombre, frase: fraseInicial, whatsapp: waInicial, foto }: { nombre: string; frase: string; whatsapp: string | null; foto: { src: string; srcSet: string } | null }) {
   const [estado, accion, guardando] = useActionState(guardarPerfil, { ok: true } as ResultadoPerfil);
   const [frase, setFrase] = useState(fraseInicial);
   const [wa, setWa] = useState(waInicial ?? "");
@@ -38,9 +39,15 @@ export function FormularioPerfil({ nombre, frase: fraseInicial, whatsapp: waInic
 
       <aside aria-label="Vista previa" className="self-start rounded-2xl border border-linea bg-superficie p-4">
         <p className="mb-3 text-[13px] font-semibold tracking-wide text-texto-2 uppercase">Así te ven en el catálogo</p>
-        <div className="grid aspect-[4/3] place-items-center rounded-xl bg-cielo">
-          <span className="font-display text-6xl font-extrabold text-azul-texto">{iniciales}</span>
+        <div className="relative grid aspect-[4/3] place-items-center overflow-hidden rounded-xl bg-cielo">
+          {foto ? (
+            // eslint-disable-next-line @next/next/no-img-element -- foto optimizada
+            <img src={foto.src} srcSet={foto.srcSet} sizes="300px" alt="Tu foto" className="absolute inset-0 size-full object-cover" />
+          ) : (
+            <span className="font-display text-6xl font-extrabold text-azul-texto">{iniciales}</span>
+          )}
         </div>
+        <FotoPerfil tieneFoto={!!foto} />
         <p className="font-display mt-3 text-xl font-bold">{nombre}</p>
         <p className="text-sm text-texto-2">Asesora comercial Suzuki en Fersautos</p>
         <p className="mt-2 text-[15px]">“{frase || "…"}”</p>

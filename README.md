@@ -108,6 +108,14 @@ Natalia descarga los PDF desde `GET /api/solicitudes/:id/pdf?tipo=formulario|ced
 cuenta de asesora puede hacerlo, el formulario exige que la solicitud tenga valor del vehículo y
 cada descarga queda en la auditoría con la huella SHA-256 del archivo.
 
+## Fotos del catálogo
+
+El admin sube las fotos de cada modelo en **Admin → Catálogo**, y Natalia sube la suya en
+**Panel → Perfil**. El navegador las comprime antes de enviarlas (para respetar el límite de 1 MB de
+las Server Actions) y el servidor guarda dos tamaños en WebP (600 y 1200 px), sin metadatos EXIF.
+Se sirven desde `/api/fotos/...`, que solo entrega archivos de la carpeta `publico/`: las cédulas
+nunca son accesibles por esa ruta.
+
 ## Estructura
 
 ```
@@ -116,7 +124,7 @@ src/
 │   ├── api/auth/        # Endpoints de Better Auth
 │   ├── ingresar/        # Inicio de sesión
 │   ├── panel/           # Zona de Natalia (rol asesora): inicio, solicitudes, compartir
-│   ├── admin/           # Zona del administrador
+│   ├── admin/           # Zona del administrador: resumen y catálogo maestro
 │   └── estado/          # Verificación del entorno
 │   ├── credito/         # Formulario de solicitud de crédito (público)
 │   └── api/solicitudes/ # Recibe el formulario: valida, guarda archivos y datos

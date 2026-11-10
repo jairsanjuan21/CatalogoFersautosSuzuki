@@ -4,6 +4,7 @@ import { BotonSalir } from "@/componentes/BotonSalir";
 import { datosAsesora } from "@/modulos/catalogo/consultas";
 import { Cargando, Titulo } from "../componentes";
 import { FormularioPerfil } from "./FormularioPerfil";
+import { atributosFoto } from "@/modulos/fotos/fotos";
 
 export default function Perfil() {
   return (
@@ -22,8 +23,7 @@ async function Contenido() {
   if (!a) return null;
   return (
     <>
-      <FormularioPerfil nombre={a.nombre} frase={a.frase} whatsapp={a.whatsapp} />
-      <p className="mt-3 text-sm text-texto-2">La foto se podrá subir cuando agreguemos las fotos reales al catálogo.</p>
+      <FormularioPerfil nombre={a.nombre} frase={a.frase} whatsapp={a.whatsapp} foto={a.foto ? atributosFoto(a.foto) : null} />
       <h2 className="font-display mt-8 mb-2.5 text-[22px] font-semibold">Cuenta</h2>
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-linea bg-superficie p-4">
         <span className="text-texto-2">{usuario.email}</span>

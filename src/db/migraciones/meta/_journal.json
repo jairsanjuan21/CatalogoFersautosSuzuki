@@ -36,6 +36,13 @@
       "when": 1794324054709,
       "tag": "0004_frase_asesora",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794327371447,
+      "tag": "0005_foto_asesora",
+      "breakpoints": true
     }
   ]
 }

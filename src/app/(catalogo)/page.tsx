@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { datosAsesora, modelosCatalogo } from "@/modulos/catalogo/consultas";
+import { atributosFoto } from "@/modulos/fotos/fotos";
 import { Modelos, type TarjetaModelo } from "./Modelos";
 import { fechaLarga, textoPromocion, TIPO_TEXTO } from "./textos";
 
@@ -45,6 +46,7 @@ async function Contenido() {
     precio: m.precio,
     actualizado: m.actualizado ? fechaLarga(m.actualizado) : null,
     promocion: m.promocion ? textoPromocion(m.promocion) : null,
+    foto: m.portada ? atributosFoto(m.portada) : null,
   }));
   const iniciales = asesora.nombre.split(" ").map((p) => p[0]).slice(0, 2).join("");
 
@@ -69,7 +71,12 @@ async function Contenido() {
         </div>
         <aside aria-label="Tu asesora" className="rounded-[18px] border border-linea bg-superficie p-5.5">
           <div className="relative grid aspect-[4/3.2] place-items-center overflow-hidden rounded-xl bg-cielo">
-            <span aria-hidden className="font-display text-[88px] font-extrabold text-azul-texto">{iniciales}</span>
+            {asesora.foto ? (
+              // eslint-disable-next-line @next/next/no-img-element -- foto optimizada en WebP con srcset
+              <img {...atributosFoto(asesora.foto, "(min-width: 768px) 40vw, 100vw")} alt={`Foto de ${asesora.nombre}`} className="absolute inset-0 size-full object-cover" />
+            ) : (
+              <span aria-hidden className="font-display text-[88px] font-extrabold text-azul-texto">{iniciales}</span>
+            )}
           </div>
           <h2 className="font-display mt-4 text-[26px] leading-tight font-bold">{asesora.nombre}</h2>
           <p className="text-[15px] text-texto-2">Asesora comercial Suzuki en Fersautos</p>

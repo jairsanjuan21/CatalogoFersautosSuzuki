@@ -7,6 +7,8 @@ import { enlaceWhatsapp, plata } from "@/lib/formato";
 import { datosAsesora, modeloPorSlug } from "@/modulos/catalogo/consultas";
 import { fechaLarga, TIPO_TEXTO } from "../../textos";
 import { SelectorColor } from "./SelectorColor";
+import { Galeria } from "./Galeria";
+import { atributosFoto } from "@/modulos/fotos/fotos";
 
 type Params = Promise<{ slug: string }>;
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -51,7 +53,11 @@ async function Contenido({ params }: { params: Params }) {
 
   return (
     <div className="mt-2.5 grid items-start gap-5 md:grid-cols-[1.25fr_1fr] md:gap-8">
-      <SelectorColor tipo={m.tipo} colorInicial={colorDe(m.slug)} />
+      {m.fotos.length ? (
+        <Galeria linea={m.linea} fotos={m.fotos.map((f) => atributosFoto(f.clave, "(min-width: 768px) 55vw, 100vw"))} />
+      ) : (
+        <SelectorColor tipo={m.tipo} colorInicial={colorDe(m.slug)} />
+      )}
       <div>
         <h1 className="font-display text-[clamp(44px,8vw,68px)] leading-[.95] font-extrabold">{m.linea}</h1>
         <p className="mt-1 text-[17px] text-texto-2">

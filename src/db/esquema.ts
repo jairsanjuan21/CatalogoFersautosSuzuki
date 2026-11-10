@@ -185,6 +185,7 @@ export const configuracion = pgTable(
     asesoraCc: text().notNull(),
     asesoraWhatsapp: text(),
     asesoraFrase: text().notNull().default("Te acompaño en todo el proceso para que estrenes tu Suzuki."),
+    asesoraFoto: text(), // clave base de la foto pública (sin tamaño ni extensión)
     ciudad: text().notNull().default("Cúcuta"),
     sede: text().notNull(),
     marcaPorDefecto: text().notNull().default("Suzuki"),
