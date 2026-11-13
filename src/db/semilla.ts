@@ -14,15 +14,24 @@ const DIA = 86_400_000;
 const haceDias = (d: number) => new Date(Date.now() - d * DIA);
 const enDias = (d: number) => new Date(Date.now() + d * DIA).toISOString().slice(0, 10);
 
+type Version = readonly [nombre: string, transmision: "mecanica" | "automatica" | null, precio: number];
+
 const MODELOS = [
-  { slug: "swift", linea: "Swift", tipo: "hatchback", puestos: 5, motor: "1.2 L gasolina", transmision: "Mecánica o automática", descripcion: "Ágil en la ciudad, fácil de parquear y económico en el día a día." },
-  { slug: "dzire", linea: "Dzire", tipo: "sedan", puestos: 5, motor: "1.2 L gasolina", transmision: "Mecánica o automática", descripcion: "Sedán compacto con baúl amplio para la familia y los viajes." },
-  { slug: "s-presso", linea: "S-Presso", tipo: "hatchback", puestos: 5, motor: "1.0 L gasolina", transmision: "Mecánica", descripcion: "El Suzuki más accesible, ideal como primer carro." },
-  { slug: "ignis", linea: "Ignis", tipo: "hatchback", puestos: 5, motor: "1.2 L gasolina", transmision: "Mecánica o automática", descripcion: "Compacto con altura de crossover y mucha personalidad." },
-  { slug: "vitara", linea: "Vitara", tipo: "suv", puestos: 5, motor: "1.5 L híbrido", transmision: "Automática", descripcion: "Camioneta cómoda para ciudad y carretera, con buena altura al piso." },
-  { slug: "jimny", linea: "Jimny", tipo: "todoterreno", puestos: 4, motor: "1.5 L gasolina", transmision: "Mecánica o automática", descripcion: "Todoterreno de verdad, para los que no se quedan en el pavimento.", mostrarPrecio: false },
-  { slug: "ertiga", linea: "Ertiga", tipo: "familiar", puestos: 7, motor: "1.5 L gasolina", transmision: "Mecánica o automática", descripcion: "Siete puestos para que nadie se quede en la casa." },
-] as const;
+  { slug: "swift", linea: "Swift", tipo: "hatchback", puestos: 5, motor: "1.2 L gasolina", transmision: "Mecánica o automática", descripcion: "Ágil en la ciudad, fácil de parquear y económico en el día a día.", precioBase: 76_990_000,
+    versiones: [["GL 1.2", "mecanica", 78_990_000], ["GLX 1.2", "automatica", 87_490_000]] },
+  { slug: "dzire", linea: "Dzire", tipo: "sedan", puestos: 5, motor: "1.2 L gasolina", transmision: "Mecánica o automática", descripcion: "Sedán compacto con baúl amplio para la familia y los viajes.", precioBase: 78_990_000,
+    versiones: [["GL 1.2", "mecanica", 79_990_000], ["GLX 1.2", "automatica", 88_990_000]] },
+  { slug: "s-presso", linea: "S-Presso", tipo: "hatchback", puestos: 5, motor: "1.0 L gasolina", transmision: "Mecánica", descripcion: "El Suzuki más accesible, ideal como primer carro.", precioBase: 59_990_000,
+    versiones: [["GL 1.0", "mecanica", 60_490_000]] },
+  { slug: "ignis", linea: "Ignis", tipo: "hatchback", puestos: 5, motor: "1.2 L gasolina", transmision: "Mecánica o automática", descripcion: "Compacto con altura de crossover y mucha personalidad.", precioBase: 74_990_000,
+    versiones: [["GLX 1.2", "mecanica", 75_490_000], ["GLX 1.2", "automatica", 82_990_000]] },
+  { slug: "vitara", linea: "Vitara", tipo: "suv", puestos: 5, motor: "1.5 L híbrido", transmision: "Automática", descripcion: "Camioneta cómoda para ciudad y carretera, con buena altura al piso.", precioBase: 119_990_000,
+    versiones: [["1.5 Hybrid AllGrip", "automatica", 120_990_000]] },
+  { slug: "jimny", linea: "Jimny", tipo: "todoterreno", puestos: 4, motor: "1.5 L gasolina", transmision: "Mecánica o automática", descripcion: "Todoterreno de verdad, para los que no se quedan en el pavimento.", precioBase: 139_990_000, mostrarPrecio: false,
+    versiones: [["GLX 1.5", "mecanica", 139_990_000], ["GLX 1.5", "automatica", 149_990_000]] },
+  { slug: "ertiga", linea: "Ertiga", tipo: "familiar", puestos: 7, motor: "1.5 L gasolina", transmision: "Mecánica o automática", descripcion: "Siete puestos para que nadie se quede en la casa.", precioBase: 99_990_000,
+    versiones: [["GLX 1.5", "mecanica", 99_990_000]] },
+] as const satisfies readonly { versiones: readonly Version[]; [k: string]: unknown }[];
 
 async function datosBase() {
   await db
@@ -37,10 +46,19 @@ async function datosBase() {
 
   await db
     .insert(t.modelos)
-    .values(MODELOS.map((m, i) => ({ ...m, visible: true, orden: i })))
+    // Las versiones van en su propia tabla: se quitan del objeto antes de insertar el modelo
+    .values(MODELOS.map((m, i) => ({ ...Object.fromEntries(Object.entries(m).filter(([k]) => k !== "versiones")), visible: true, orden: i, precioBaseActualizado: new Date() }) as typeof t.modelos.$inferInsert))
     .onConflictDoNothing({ target: t.modelos.slug });
 
-  console.log("✔ Datos base: configuración, cláusula y 7 modelos");
+  // Versiones de cada modelo (estructura del catálogo, no datos de ejemplo)
+  const ids = await db.select({ id: t.modelos.id, slug: t.modelos.slug }).from(t.modelos);
+  const filas = MODELOS.flatMap((m) => {
+    const modeloId = ids.find((x) => x.slug === m.slug)?.id;
+    return modeloId ? m.versiones.map(([nombre, transmision], orden) => ({ modeloId, nombre, transmision, orden })) : [];
+  });
+  if (filas.length) await db.insert(t.versiones).values(filas).onConflictDoNothing();
+
+  console.log("✔ Datos base: configuración, cláusula, 7 modelos y sus versiones");
 }
 
 async function datosDeEjemplo() {
@@ -55,17 +73,18 @@ async function datosDeEjemplo() {
   const [clausula] = await db.select({ id: t.clausulas.id }).from(t.clausulas).where(eq(t.clausulas.version, 1));
 
   await db.transaction(async (tx) => {
-    // Precios: Vitara (9 días) y Ertiga (12 días) quedan desactualizados a propósito
-    await tx.insert(t.precios).values([
-      { modeloId: id("swift"), precioLista: 76_990_000, vigenteDesde: haceDias(20) },
-      { modeloId: id("swift"), precioLista: 77_990_000, vigenteDesde: haceDias(1) },
-      { modeloId: id("dzire"), precioLista: 79_990_000, vigenteDesde: haceDias(1) },
-      { modeloId: id("s-presso"), precioLista: 59_990_000, vigenteDesde: haceDias(1) },
-      { modeloId: id("ignis"), precioLista: 74_990_000, vigenteDesde: haceDias(1) },
-      { modeloId: id("vitara"), precioLista: 119_990_000, vigenteDesde: haceDias(9) },
-      { modeloId: id("jimny"), precioLista: 139_990_000, vigenteDesde: haceDias(1) },
-      { modeloId: id("ertiga"), precioLista: 99_990_000, vigenteDesde: haceDias(12) },
-    ]);
+    // Precios por versión. Vitara (9 días) y Ertiga (12 días) quedan desactualizados a propósito
+    const versiones = await tx.select({ id: t.versiones.id, modeloId: t.versiones.modeloId, nombre: t.versiones.nombre, transmision: t.versiones.transmision }).from(t.versiones);
+    const antiguedad: Record<string, number> = { vitara: 9, ertiga: 12 };
+    const precios = MODELOS.flatMap((m) =>
+      m.versiones.flatMap(([nombre, transmision, precio]) => {
+        const v = versiones.find((x) => x.modeloId === id(m.slug) && x.nombre === nombre && x.transmision === transmision);
+        return v ? [{ versionId: v.id, precioLista: precio, vigenteDesde: haceDias(antiguedad[m.slug] ?? 1) }] : [];
+      }),
+    );
+    const swiftGl = versiones.find((x) => x.modeloId === id("swift") && x.transmision === "mecanica")!;
+    await tx.insert(t.precios).values([{ versionId: swiftGl.id, precioLista: 77_990_000, vigenteDesde: haceDias(20) }, ...precios]);
+    const versionDe = (slug: string, tr: "mecanica" | "automatica") => versiones.find((x) => x.modeloId === id(slug) && x.transmision === tr)?.id;
 
     await tx.insert(t.promociones).values([
       { modeloId: id("swift"), descripcion: "Bono de descuento por compra a crédito", valorBono: 3_000_000, hasta: enDias(12) },
@@ -95,7 +114,7 @@ async function datosDeEjemplo() {
           ingresosMensuales: 4_200_000, egresosMensuales: 2_100_000, declaraRenta: false, monedaExtranjera: false,
         },
         {
-          ...consentimiento, origen: "whatsapp", lineaInteres: "Ertiga", modeloId: id("ertiga"), valorVehiculo: 99_990_000,
+          ...consentimiento, origen: "whatsapp", lineaInteres: "Ertiga", modeloId: id("ertiga"), versionId: versionDe("ertiga", "mecanica"), valorVehiculo: 99_990_000,
           estado: "lista_para_cargar", vistaEn: haceDias(1), cuotaInicial: 30_000_000, plazoMeses: 36, creadoEn: haceDias(1),
           primerApellido: "Carrillo", nombres: "Jhon Fredy", tipoIdentificacion: "cc", numeroIdentificacion: "88234567",
           fechaExpedicion: "2005-07-22", lugarExpedicion: "Cúcuta", fechaNacimiento: "1987-05-30", lugarNacimiento: "Ocaña", genero: "m",
@@ -106,7 +125,7 @@ async function datosDeEjemplo() {
           ingresosMensuales: 7_500_000, egresosMensuales: 3_900_000, declaraRenta: true, monedaExtranjera: true,
         },
         {
-          ...consentimiento, origen: "catalogo", lineaInteres: "S-Presso", modeloId: id("s-presso"), valorVehiculo: 59_990_000,
+          ...consentimiento, origen: "catalogo", lineaInteres: "S-Presso", modeloId: id("s-presso"), versionId: versionDe("s-presso", "mecanica"), valorVehiculo: 60_490_000,
           estado: "en_estudio", financiera: "Bancolombia", vistaEn: haceDias(3), cuotaInicial: 12_000_000, plazoMeses: 72, creadoEn: haceDias(3),
           primerApellido: "Ortiz", nombres: "Laura Valentina", tipoIdentificacion: "cc", numeroIdentificacion: "1093789012",
           fechaExpedicion: "2016-01-12", lugarExpedicion: "Cúcuta", fechaNacimiento: "1998-01-05", lugarNacimiento: "Cúcuta", genero: "f",
@@ -138,9 +157,9 @@ async function datosDeEjemplo() {
     await tx.insert(t.historial).values([
       { solicitudId: andres.id, actor: "cliente", descripcion: "Solicitud recibida desde el formulario" },
       { solicitudId: jhon.id, actor: "cliente", descripcion: "Solicitud recibida desde el formulario", creadoEn: haceDias(1) },
-      { solicitudId: jhon.id, actor: "asesora", descripcion: "Valor asignado: $ 99.990.000 (Ertiga)", datos: { campo: "valorVehiculo", antes: null, despues: 99_990_000 } },
+      { solicitudId: jhon.id, actor: "asesora", descripcion: "Valor asignado: $ 99.990.000 (Ertiga GLX 1.5 mecánica)", datos: { campo: "valorVehiculo", antes: null, despues: 99_990_000 } },
       { solicitudId: laura.id, actor: "cliente", descripcion: "Solicitud recibida desde el formulario", creadoEn: haceDias(3) },
-      { solicitudId: laura.id, actor: "asesora", descripcion: "Valor asignado: $ 59.990.000 (S-Presso)", creadoEn: haceDias(3) },
+      { solicitudId: laura.id, actor: "asesora", descripcion: "Valor asignado: $ 60.490.000 (S-Presso GL 1.0 mecánica)", creadoEn: haceDias(3) },
       { solicitudId: laura.id, actor: "asesora", descripcion: "Cargada en la plataforma de Fersautos (Bancolombia)", creadoEn: haceDias(2) },
     ]);
 
@@ -152,7 +171,7 @@ async function datosDeEjemplo() {
     ]);
   });
 
-  console.log("✔ Datos de ejemplo: 8 precios, 2 promociones y 3 solicitudes");
+  console.log("✔ Datos de ejemplo: precios por versión, 2 promociones y 3 solicitudes");
 }
 
 async function main() {

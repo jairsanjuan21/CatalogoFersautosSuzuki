@@ -12,7 +12,6 @@ export interface TarjetaModelo {
   tipoTexto: string;
   puestos: number;
   precio: number | null;
-  actualizado: string | null; // "8 de noviembre", ya formateado en el servidor
   promocion: string | null;
   foto: { src: string; srcSet: string } | null;
 }
@@ -57,7 +56,7 @@ export function Modelos({ modelos }: { modelos: TarjetaModelo[] }) {
               {m.precio ? (
                 <span className="mt-auto pt-3 font-semibold">
                   Desde {plata(m.precio)}
-                  <small className="block text-[13px] font-normal text-texto-2">Precio actualizado el {m.actualizado}</small>
+                  <small className="block text-[13px] font-normal text-texto-2">Precio base con IVA</small>
                 </span>
               ) : (
                 <span className="mt-auto pt-3 font-semibold text-azul-texto">

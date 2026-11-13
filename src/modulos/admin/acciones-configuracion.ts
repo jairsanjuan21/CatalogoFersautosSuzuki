@@ -6,7 +6,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import * as t from "@/db/esquema";
 import { exigirAdmin } from "@/lib/autorizacion";
-import { erroresPorCampo, PLAZOS } from "@/validacion/solicitud";
+import { erroresPorCampo, RANGO_PLAZO } from "@/validacion/solicitud";
 import type { ResultadoAdmin } from "./acciones-catalogo";
 
 const esquema = z.object({
@@ -17,8 +17,15 @@ const esquema = z.object({
   marcaPorDefecto: z.string().trim().min(2).max(30),
   planFinanciacion: z.string().trim().min(2).max(40),
   plazosMeses: z
-    .array(z.coerce.number().refine((v) => (PLAZOS as readonly number[]).includes(v)))
+    .array(
+      z.coerce
+        .number()
+        .int({ error: "Los plazos son meses enteros." })
+        .min(RANGO_PLAZO.min, { error: `Mínimo ${RANGO_PLAZO.min} meses.` })
+        .max(RANGO_PLAZO.max, { error: `Máximo ${RANGO_PLAZO.max} meses.` }),
+    )
     .min(1, { error: "Deja al menos un plazo disponible." })
+    .max(12, { error: "Máximo 12 plazos." })
     .transform((v) => [...new Set(v)].sort((a, b) => a - b)),
   diasVigenciaPrecio: z.coerce.number().refine((v) => [3, 5, 7, 10, 15].includes(v)),
   diasRetencionDocumentos: z.coerce.number().refine((v) => [30, 60, 90, 180].includes(v)),

@@ -12,7 +12,8 @@ z.config(z.locales.es());
    propio esquema, y la solicitud completa es la unión de todos los pasos.
    ========================================================================== */
 
-export const PLAZOS = [12, 24, 36, 48, 60, 72, 84] as const;
+/** Rango permitido. Los plazos disponibles se configuran en el panel y los revisa el servidor. */
+export const RANGO_PLAZO = { min: 6, max: 120 } as const;
 
 export const OPCIONES = {
   tipoIdentificacion: { cc: "Cédula de ciudadanía", ce: "Cédula de extranjería" },
@@ -107,9 +108,7 @@ function edad(fechaNacimiento: string, hoy = new Date()) {
 export const pasoVehiculo = z.object({
   lineaInteres: textoOpcional(60),
   cuotaInicial: pesos("la cuota inicial"),
-  plazoMeses: z
-    .number(elige)
-    .refine((v) => (PLAZOS as readonly number[]).includes(v), elige),
+  plazoMeses: z.number(elige).int(elige).min(RANGO_PLAZO.min, elige).max(RANGO_PLAZO.max, elige),
 });
 
 export const pasoPersonal = z

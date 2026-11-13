@@ -17,6 +17,7 @@ import {
   check,
   index,
   uniqueIndex,
+  unique,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -93,6 +94,7 @@ export const tipoArchivo = pgEnum("tipo_archivo", [
   "pdf_cedula",
 ]);
 export const origenPrecio = pgEnum("origen_precio", ["manual", "pdf_ia"]);
+export const transmision = pgEnum("transmision", ["mecanica", "automatica"]);
 export const actor = pgEnum("actor", ["cliente", "asesora", "admin", "sistema"]);
 export const tipoPeticion = pgEnum("tipo_peticion", ["consulta", "correccion", "eliminacion", "revocatoria"]);
 export const estadoPeticion = pgEnum("estado_peticion", ["pendiente", "atendida", "rechazada"]);
@@ -229,7 +231,10 @@ export const modelos = pgTable(
     transmision: text(),
     descripcion: text(),
     visible: boolean().notNull().default(false), // nace oculto hasta que esté completo
+    archivado: boolean().notNull().default(false), // ya no se vende, pero solicitudes viejas lo usan
     mostrarPrecio: boolean().notNull().default(true),
+    precioBase: pesos(), // "Desde $..." del catálogo: lo define Natalia y casi no cambia
+    precioBaseActualizado: timestamp({ withTimezone: true }),
     orden: smallint().notNull().default(0),
     creadoEn: creadoEn(),
     actualizadoEn: actualizadoEn(),
@@ -257,25 +262,49 @@ export const fotosModelo = pgTable(
 );
 
 /**
- * Historial de precios: cada actualización es una fila nueva, nunca se sobrescribe.
- * El precio vigente de un modelo es su fila más reciente (ver la vista precios_vigentes).
+ * Versiones de cada modelo (ej: Fronx GL mecánica, Fronx GLX automática).
+ * Cada versión tiene su propio precio, que cambia seguido.
+ */
+export const versiones = pgTable(
+  "versiones",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    modeloId: uuid()
+      .notNull()
+      .references(() => modelos.id, { onDelete: "cascade" }),
+    nombre: text().notNull(), // "GL 1.2", "GLX 1.5 Hybrid"
+    transmision: transmision(), // null = no aplica o no se especifica
+    visible: boolean().notNull().default(true),
+    orden: smallint().notNull().default(0),
+    creadoEn: creadoEn(),
+  },
+  (t) => [
+    // NULLS NOT DISTINCT: sin esto, dos versiones con el mismo nombre y sin transmisión no chocarían
+    unique("versiones_unica").on(t.modeloId, t.nombre, t.transmision).nullsNotDistinct(),
+    index("versiones_modelo").on(t.modeloId, t.orden),
+  ],
+);
+
+/**
+ * Historial de precios POR VERSIÓN: cada actualización es una fila nueva, nunca se sobrescribe.
+ * El precio vigente de una versión es su fila más reciente (ver la vista precios_vigentes).
  */
 export const precios = pgTable(
   "precios",
   {
     id: bigserial({ mode: "number" }).primaryKey(),
-    modeloId: uuid()
-      .notNull()
-      .references(() => modelos.id, { onDelete: "restrict" }),
     precioLista: pesos().notNull(),
     vigenteDesde: timestamp({ withTimezone: true }).notNull().defaultNow(),
     origen: origenPrecio().notNull().default("manual"),
+    versionId: uuid()
+      .notNull()
+      .references(() => versiones.id, { onDelete: "cascade" }),
     loteId: uuid(), // agrupa los precios que llegaron en un mismo PDF
     usuarioId: text().references(() => user.id, { onDelete: "set null" }),
   },
   (t) => [
     check("precios_positivo", sql`${t.precioLista} > 0`),
-    index("precios_modelo_reciente").on(t.modeloId, t.vigenteDesde.desc()),
+    index("precios_version_reciente").on(t.versionId, t.vigenteDesde.desc()),
   ],
 );
 
@@ -325,6 +354,7 @@ export const solicitudes = pgTable(
     // Vehículo y financiación
     lineaInteres: text(),
     modeloId: uuid().references(() => modelos.id, { onDelete: "set null" }),
+    versionId: uuid().references(() => versiones.id, { onDelete: "set null" }),
     valorVehiculo: pesos(), // lo pone Natalia
     cuotaInicial: pesos().notNull(),
     valorAFinanciar: pesos().generatedAlwaysAs(
@@ -400,7 +430,8 @@ export const solicitudes = pgTable(
       "solicitudes_cuota_menor_valor",
       sql`${t.valorVehiculo} is null or ${t.cuotaInicial} <= ${t.valorVehiculo}`,
     ),
-    check("solicitudes_plazo", sql`${t.plazoMeses} in (12, 24, 36, 48, 60, 72, 84)`),
+    // Rango y no lista fija: los plazos disponibles se configuran en el panel de administración
+    check("solicitudes_plazo", sql`${t.plazoMeses} between 6 and 120`),
     check("solicitudes_estrato", sql`${t.estrato} between 1 and 6`),
     check("solicitudes_celular", sql`${t.celular} ~ '^3[0-9]{9}$'`),
     check("solicitudes_identificacion", sql`${t.numeroIdentificacion} ~ '^[0-9]{5,11}$'`),
@@ -604,12 +635,13 @@ export const auditoria = pgTable(
 );
 
 /* ============================================================================
-   VISTA: precio vigente de cada modelo
+   VISTA: precio vigente de cada versión
    La crea la migración de reglas a mano (SQL); aquí solo se declara para poder
    consultarla con tipos. .existing() le dice a Drizzle que no la administre.
    ========================================================================== */
 
 export const preciosVigentes = pgView("precios_vigentes", {
+  versionId: uuid().notNull(),
   modeloId: uuid().notNull(),
   precioLista: pesos().notNull(),
   vigenteDesde: timestamp({ withTimezone: true }).notNull(),

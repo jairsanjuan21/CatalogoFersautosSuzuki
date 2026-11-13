@@ -5,11 +5,11 @@ import * as t from "@/db/esquema";
 import { nombreDeAsesora } from "@/lib/formato";
 
 /**
- * REGLA DEL CATÁLOGO: un precio se muestra solo si
- *   1. Natalia dejó activo "Mostrar precio en el catálogo",
- *   2. el modelo tiene precio cargado, y
- *   3. el precio no está desactualizado (más días de los configurados).
- * Si no se cumple, el catálogo muestra "Precio a consultar" y el botón de cotizar.
+ * REGLAS DEL CATÁLOGO
+ * - Precio base ("Desde $..."): se muestra si Natalia dejó activo "Mostrar precio"
+ *   y lo tiene cargado. Es fijo, no se vence.
+ * - Precio de cada versión: además debe estar vigente (no más días de los
+ *   configurados sin actualizar). Si no, la versión aparece "a consultar".
  */
 const columnas = {
   id: t.modelos.id,
@@ -20,11 +20,27 @@ const columnas = {
   motor: t.modelos.motor,
   transmision: t.modelos.transmision,
   descripcion: t.modelos.descripcion,
-  precio: sql<number | null>`case when ${t.modelos.mostrarPrecio} and not coalesce(${t.preciosVigentes.desactualizado}, true)
-    then ${t.preciosVigentes.precioLista} end`.mapWith(Number),
-  actualizado: sql<Date | null>`case when ${t.modelos.mostrarPrecio} and not coalesce(${t.preciosVigentes.desactualizado}, true)
-    then ${t.preciosVigentes.vigenteDesde} end`.mapWith((v) => (v ? new Date(v) : null)),
+  precio: sql<number | null>`case when ${t.modelos.mostrarPrecio} then ${t.modelos.precioBase} end`.mapWith((v) => (v === null ? null : Number(v))),
 };
+
+/** Versiones visibles de uno o varios modelos, con su precio solo si se puede mostrar */
+async function versionesDe(modeloIds: string[]) {
+  if (!modeloIds.length) return [];
+  return db
+    .select({
+      modeloId: t.versiones.modeloId,
+      nombre: t.versiones.nombre,
+      transmision: t.versiones.transmision,
+      precio: sql<number | null>`case when ${t.modelos.mostrarPrecio} and not coalesce(${t.preciosVigentes.desactualizado}, true)
+        then ${t.preciosVigentes.precioLista} end`.mapWith((v) => (v === null ? null : Number(v))),
+      actualizado: t.preciosVigentes.vigenteDesde,
+    })
+    .from(t.versiones)
+    .innerJoin(t.modelos, eq(t.modelos.id, t.versiones.modeloId))
+    .leftJoin(t.preciosVigentes, eq(t.preciosVigentes.versionId, t.versiones.id))
+    .where(and(inArray(t.versiones.modeloId, modeloIds), eq(t.versiones.visible, true)))
+    .orderBy(asc(t.versiones.orden), asc(t.versiones.nombre));
+}
 
 async function promocionesVigentes() {
   return db
@@ -45,12 +61,7 @@ async function fotosDe(modeloIds: string[]) {
 
 export async function modelosCatalogo() {
   const [modelos, promociones] = await Promise.all([
-    db
-      .select(columnas)
-      .from(t.modelos)
-      .leftJoin(t.preciosVigentes, eq(t.preciosVigentes.modeloId, t.modelos.id))
-      .where(eq(t.modelos.visible, true))
-      .orderBy(asc(t.modelos.orden)),
+    db.select(columnas).from(t.modelos).where(eq(t.modelos.visible, true)).orderBy(asc(t.modelos.orden)),
     promocionesVigentes(),
   ]);
   const fotos = await fotosDe(modelos.map((m) => m.id));
@@ -67,11 +78,10 @@ export async function modeloPorSlug(slug: string) {
   const [modelo] = await db
     .select(columnas)
     .from(t.modelos)
-    .leftJoin(t.preciosVigentes, eq(t.preciosVigentes.modeloId, t.modelos.id))
     .where(and(eq(t.modelos.slug, slug), eq(t.modelos.visible, true)));
   if (!modelo) return null;
-  const [promociones, fotos] = await Promise.all([promocionesVigentes(), fotosDe([modelo.id])]);
-  return { ...modelo, promocion: promociones.find((p) => p.modeloId === modelo.id) ?? null, fotos };
+  const [promociones, fotos, versiones] = await Promise.all([promocionesVigentes(), fotosDe([modelo.id]), versionesDe([modelo.id])]);
+  return { ...modelo, promocion: promociones.find((p) => p.modeloId === modelo.id) ?? null, fotos, versiones };
 }
 
 /** Lo que el público ve de Natalia (nunca su cédula ni datos internos). */

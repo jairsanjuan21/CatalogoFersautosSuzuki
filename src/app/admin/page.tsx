@@ -25,7 +25,7 @@ async function Contenido() {
   const kpis = [
     [r.solicitudesMes, "Solicitudes en 30 días", `${r.solicitudesTotal} en total`],
     [r.sinFoto.length, "Modelos visibles sin foto", "Se muestran con ilustración"],
-    [r.preciosViejos, "Precios desactualizados", "No se muestran en el catálogo"],
+    [r.preciosViejos, "Versiones sin precio al día", "Se muestran “a consultar”"],
     [r.tamanoBd, "Base de datos", "Tamaño actual"],
   ] as const;
 

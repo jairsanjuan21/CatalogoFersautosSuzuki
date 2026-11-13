@@ -1,10 +1,11 @@
 import { Suspense } from "react";
 import { exigirRol } from "@/lib/sesion";
 import { fechaCorta, haceCuanto } from "@/lib/etiquetas";
-import { plata } from "@/lib/formato";
+import { nombreVersion, plata } from "@/lib/formato";
 import { preciosParaPanel, promocionesParaPanel } from "@/modulos/precios/consultas";
 import { Cargando, Titulo } from "../componentes";
-import { FormularioPromocion, QuitarPromocion, TablaPrecios, type FilaPrecio } from "./clientes";
+import { FormularioPromocion, QuitarPromocion, TablaPrecios, type ModeloPrecios } from "./clientes";
+import { LectorPdf } from "./LectorPdf";
 
 const TIPOS: Record<string, string> = { hatchback: "Hatchback", sedan: "Sedán", suv: "SUV", todoterreno: "4x4", familiar: "Familiar 7 puestos" };
 
@@ -24,33 +25,33 @@ async function Contenido() {
   const [{ modelos, diasVigencia }, promociones] = await Promise.all([preciosParaPanel(), promocionesParaPanel()]);
   const hoy = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
 
-  const filas: FilaPrecio[] = modelos.map((m) => {
-    const anterior = m.historial.find((h) => h.precio !== m.precio);
-    return {
-      id: m.id,
-      linea: m.linea,
-      tipo: TIPOS[m.tipo] ?? m.tipo,
-      precio: m.precio,
-      mostrarPrecio: m.mostrarPrecio,
-      desactualizado: !!m.desactualizado,
-      actualizado: m.vigenteDesde ? haceCuanto(m.vigenteDesde) : "",
-      anterior: anterior ? `${plata(anterior.precio)} el ${fechaCorta(anterior.desde)}` : null,
-    };
-  });
+  const tablas: ModeloPrecios[] = modelos.map((m) => ({
+    id: m.id,
+    linea: m.linea,
+    tipo: TIPOS[m.tipo] ?? m.tipo,
+    mostrarPrecio: m.mostrarPrecio,
+    precioBase: m.precioBase,
+    versiones: m.versiones.map((v) => ({
+      id: v.id,
+      etiqueta: nombreVersion(v),
+      precio: v.precio,
+      desactualizado: !!v.desactualizado,
+      actualizado: v.vigenteDesde ? haceCuanto(v.vigenteDesde) : "",
+      anterior: v.anterior ? `${plata(v.anterior.precio)} el ${fechaCorta(v.anterior.desde)}` : null,
+    })),
+  }));
   const vigentes = promociones.filter((p) => !p.vencida);
   const vencidas = promociones.filter((p) => p.vencida);
 
   return (
     <>
       <h2 className="font-display mt-7 mb-2.5 text-[22px] font-semibold">Subir lista de precios en PDF</h2>
-      <div className="rounded-xl border-[1.5px] border-dashed border-linea-2 bg-superficie p-5 text-center text-texto-2">
-        Pronto vas a poder subir el PDF que te llega con los precios: el sistema los lee y te los muestra para que los confirmes.
-      </div>
+      <LectorPdf />
 
       <h2 className="font-display mt-7 mb-2.5 text-[22px] font-semibold">Precios de hoy</h2>
-      <TablaPrecios filas={filas} diasVigencia={diasVigencia} />
+      <TablaPrecios modelos={tablas} diasVigencia={diasVigencia} />
       <p className="mt-2 text-sm text-texto-2">
-        “Guardar precios de hoy” confirma todos los precios, aunque no cambien. Los modelos sin precio visible muestran “Cotizar con Natalia” en el catálogo.
+        “Guardar precios de hoy” confirma el precio de todas las versiones, aunque no cambien. Los modelos sin precio visible muestran “Cotizar con Natalia” en el catálogo.
       </p>
 
       <h2 className="font-display mt-8 mb-2.5 text-[22px] font-semibold">Promociones</h2>

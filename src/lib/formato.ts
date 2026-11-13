@@ -44,3 +44,9 @@ export const aSlug = (texto: string) =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+
+export const TRANSMISIONES = { mecanica: "mecánica", automatica: "automática" } as const;
+
+/** { nombre: "GL 1.2", transmision: "mecanica" } → "GL 1.2 mecánica" */
+export const nombreVersion = (v: { nombre: string; transmision: "mecanica" | "automatica" | null }) =>
+  v.transmision ? `${v.nombre} ${TRANSMISIONES[v.transmision]}` : v.nombre;

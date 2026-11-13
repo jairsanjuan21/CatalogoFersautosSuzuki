@@ -32,6 +32,66 @@ export interface Config {
   diasRetencionDocumentos: number;
 }
 
+/** Lista editable de plazos: se agregan y se quitan; viajan como campos ocultos "plazosMeses". */
+function EditorPlazos({ iniciales, error }: { iniciales: number[]; error?: string }) {
+  const [plazos, setPlazos] = useState(() => [...iniciales].sort((a, b) => a - b));
+  const [nuevo, setNuevo] = useState("");
+  const [aviso, setAviso] = useState<string>();
+  const agregar = () => {
+    const n = Number(nuevo);
+    if (!Number.isInteger(n) || n < 6 || n > 120) return setAviso("Escribe un número de meses entre 6 y 120.");
+    if (plazos.includes(n)) return setAviso(`${n} meses ya está en la lista.`);
+    if (plazos.length >= 12) return setAviso("Máximo 12 plazos.");
+    setPlazos((p) => [...p, n].sort((a, b) => a - b));
+    setNuevo("");
+    setAviso(undefined);
+  };
+  return (
+    <fieldset className="sm:col-span-2">
+      <legend className="mb-1.5 text-sm font-semibold">Plazos disponibles</legend>
+      {plazos.map((p) => <input key={p} type="hidden" name="plazosMeses" value={p} />)}
+      <ul className="flex flex-wrap gap-2">
+        {plazos.map((p) => (
+          <li key={p} className="flex min-h-10 items-center gap-1 rounded-full border border-azul bg-azul pr-1 pl-3.5 font-semibold text-white">
+            {p} meses
+            <button
+              type="button"
+              onClick={() => setPlazos((x) => x.filter((y) => y !== p))}
+              aria-label={`Quitar ${p} meses`}
+              className="grid size-8 place-items-center rounded-full hover:bg-white/20"
+            >
+              ×
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+        <label htmlFor="nuevo-plazo" className="sr-only">Nuevo plazo en meses</label>
+        <input
+          id="nuevo-plazo"
+          inputMode="numeric"
+          maxLength={3}
+          value={nuevo}
+          placeholder="Ej: 96"
+          onChange={(e) => setNuevo(e.target.value.replace(/\D/g, ""))}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault(); // Enter agrega el plazo en vez de enviar todo el formulario
+              agregar();
+            }
+          }}
+          className={`${claseInput} w-28`}
+        />
+        <button type="button" onClick={agregar} className="min-h-11 rounded-lg border border-linea-2 bg-superficie px-3.5 font-semibold">
+          Agregar plazo
+        </button>
+      </div>
+      <p className="mt-1 text-[13px] text-texto-2">Los cambios se aplican al tocar “Guardar configuración”. Las solicitudes que ya tienen un plazo lo conservan aunque lo quites.</p>
+      {(aviso || error) && <p className="mt-1 text-sm text-senal">{aviso ?? error}</p>}
+    </fieldset>
+  );
+}
+
 export function FormularioConfiguracion({ c }: { c: Config }) {
   const [estado, accion, guardando] = useActionState(guardarConfiguracion, inicial);
   const [cc, setCc] = useState(c.asesoraCc);
@@ -68,18 +128,7 @@ export function FormularioConfiguracion({ c }: { c: Config }) {
         <Campo id="planFinanciacion" etiqueta="Plan de financiación">
           <input id="planFinanciacion" name="planFinanciacion" defaultValue={c.planFinanciacion} maxLength={40} className={claseInput} />
         </Campo>
-        <fieldset className="sm:col-span-2">
-          <legend className="mb-1.5 text-sm font-semibold">Plazos disponibles</legend>
-          <div className="flex flex-wrap gap-2">
-            {[12, 24, 36, 48, 60, 72, 84].map((p) => (
-              <label key={p} className="flex min-h-10 cursor-pointer items-center gap-2 rounded-full border border-linea-2 px-3.5 has-checked:border-azul has-checked:bg-azul has-checked:font-semibold has-checked:text-white">
-                <input type="checkbox" name="plazosMeses" value={p} defaultChecked={c.plazosMeses.includes(p)} className="sr-only" />
-                {p} meses
-              </label>
-            ))}
-          </div>
-          {err.plazosMeses && <p className="mt-1 text-sm text-senal">{err.plazosMeses}</p>}
-        </fieldset>
+        <EditorPlazos iniciales={c.plazosMeses} error={err.plazosMeses} />
         <p className="text-[15px] text-texto-2 sm:col-span-2">Valores fijos en cada PDF: Solicitante, Crédito, Nuevo y Particular.</p>
       </div>
 

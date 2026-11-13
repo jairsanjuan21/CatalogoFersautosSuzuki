@@ -8,7 +8,7 @@ export async function obtenerSolicitudCompleta(id: string) {
   const [solicitud] = await db.select().from(t.solicitudes).where(eq(t.solicitudes.id, id));
   if (!solicitud) return null;
 
-  const [referencias, [conyuge], inmuebles, vehiculos, documentos, modelo] = await Promise.all([
+  const [referencias, [conyuge], inmuebles, vehiculos, documentos, modelo, version] = await Promise.all([
     db.select().from(t.referencias).where(eq(t.referencias.solicitudId, id)),
     db.select().from(t.conyuges).where(eq(t.conyuges.solicitudId, id)),
     db.select().from(t.inmuebles).where(eq(t.inmuebles.solicitudId, id)),
@@ -17,9 +17,12 @@ export async function obtenerSolicitudCompleta(id: string) {
     solicitud.modeloId
       ? db.select().from(t.modelos).where(eq(t.modelos.id, solicitud.modeloId)).then((r) => r[0] ?? null)
       : Promise.resolve(null),
+    solicitud.versionId
+      ? db.select().from(t.versiones).where(eq(t.versiones.id, solicitud.versionId)).then((r) => r[0] ?? null)
+      : Promise.resolve(null),
   ]);
 
-  return { ...solicitud, referencias, conyuge: conyuge ?? null, inmuebles, vehiculos, documentos, modelo };
+  return { ...solicitud, referencias, conyuge: conyuge ?? null, inmuebles, vehiculos, documentos, modelo, version };
 }
 
 export type SolicitudCompleta = NonNullable<Awaited<ReturnType<typeof obtenerSolicitudCompleta>>>;

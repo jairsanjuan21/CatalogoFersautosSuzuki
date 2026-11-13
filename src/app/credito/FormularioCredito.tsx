@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import type { z } from "zod";
 import {
   OPCIONES,
-  PLAZOS,
   erroresPorCampo,
   esquemaSolicitud,
   pasoActividad,
@@ -491,7 +490,7 @@ function PasoVehiculo({ config }: { config: ConfigFormulario }) {
         ruta="vehiculo.plazoMeses"
         etiqueta="Plazo"
         sufijo=" meses"
-        opciones={PLAZOS.filter((x) => config.plazos.includes(x)).map((x) => [x, String(x)])}
+        opciones={[...config.plazos].sort((a, b) => a - b).map((x) => [x, String(x)])}
       />
     </>
   );

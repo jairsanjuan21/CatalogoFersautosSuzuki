@@ -3,6 +3,7 @@ import Link from "next/link";
 import { exigirRol } from "@/lib/sesion";
 import { fechaCorta, haceCuanto, ORIGENES } from "@/lib/etiquetas";
 import { resumenPanel } from "@/modulos/solicitudes/panel";
+import { nombreVersion } from "@/lib/formato";
 import { Cargando, ItemSolicitud, Lista } from "./componentes";
 
 export default function Inicio() {
@@ -55,8 +56,10 @@ async function Contenido() {
 
       {r.preciosViejos.length > 0 && (
         <p className="mt-3 rounded-lg bg-ambar-fondo px-3 py-2.5 text-[15px] text-ambar">
-          {r.preciosViejos.length === 1 ? `El precio de ${r.preciosViejos[0].linea} lleva` : `${r.preciosViejos.length} precios llevan`} más de 7 días sin
-          actualizar y no se muestran en el catálogo.
+          {r.preciosViejos.length === 1
+            ? `El precio de ${r.preciosViejos[0].linea} ${nombreVersion(r.preciosViejos[0])} lleva`
+            : `${r.preciosViejos.length} versiones llevan`}{" "}
+          más de 7 días sin actualizar: el catálogo las muestra “a consultar”.
         </p>
       )}
       {r.promosPorVencer.map((p) => (

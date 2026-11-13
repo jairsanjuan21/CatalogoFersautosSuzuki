@@ -1,14 +1,16 @@
 "use server";
 
 import { refresh } from "next/cache";
+import { redirect } from "next/navigation";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import * as t from "@/db/esquema";
 import { exigirAsesora } from "@/lib/autorizacion";
+import { almacenamiento } from "@/lib/almacenamiento";
 import { ESTADOS, ESTADOS_CERRADOS, type Estado } from "@/lib/etiquetas";
-import { plata } from "@/lib/formato";
-import { erroresPorCampo, PLAZOS } from "@/validacion/solicitud";
+import { nombreVersion, plata } from "@/lib/formato";
+import { erroresPorCampo, RANGO_PLAZO } from "@/validacion/solicitud";
 
 /* ============================================================================
    ACCIONES DEL PANEL DE NATALIA
@@ -43,9 +45,10 @@ const esquemaValor = z
   .object({
     solicitudId: id,
     modeloId: z.uuid({ error: "Selecciona el modelo." }),
+    versionId: z.union([z.uuid(), z.literal("")]).transform((v) => v || null),
     valorVehiculo: pesos,
     cuotaInicial: pesos,
-    plazoMeses: z.coerce.number().refine((v) => (PLAZOS as readonly number[]).includes(v), { error: "Elige un plazo." }),
+    plazoMeses: z.coerce.number().int().min(RANGO_PLAZO.min, { error: "Elige un plazo." }).max(RANGO_PLAZO.max, { error: "Elige un plazo." }),
   })
   .refine((d) => d.cuotaInicial <= d.valorVehiculo, {
     path: ["cuotaInicial"],
@@ -61,18 +64,27 @@ export async function asignarValor(_previo: Resultado, formulario: FormData): Pr
 
   const [actual] = await db.select().from(t.solicitudes).where(eq(t.solicitudes.id, d.solicitudId));
   if (!actual) return { ok: false, mensaje: "La solicitud no existe." };
+  // Plazo: uno de los activos, o el que la solicitud ya tenía (aunque se haya desactivado después)
+  const [conf] = await db.select({ plazos: t.configuracion.plazosMeses }).from(t.configuracion).limit(1);
+  if (conf && !conf.plazos.includes(d.plazoMeses) && d.plazoMeses !== actual.plazoMeses) return { ok: false, errores: { plazoMeses: "Ese plazo no está disponible." } };
+
   const [modelo] = await db.select({ linea: t.modelos.linea }).from(t.modelos).where(eq(t.modelos.id, d.modeloId));
   if (!modelo) return { ok: false, errores: { modeloId: "Ese modelo no existe." } };
+  const versionesDelModelo = await db.select({ id: t.versiones.id, nombre: t.versiones.nombre, transmision: t.versiones.transmision }).from(t.versiones).where(eq(t.versiones.modeloId, d.modeloId));
+  const version = versionesDelModelo.find((v) => v.id === d.versionId);
+  // La versión debe ser DE ese modelo: sin esta revisión se podría guardar un Swift con versión de Jimny
+  if (versionesDelModelo.length && !version) return { ok: false, errores: { versionId: "Selecciona la versión." } };
+  const vehiculo = version ? `${modelo.linea} ${nombreVersion(version)}` : modelo.linea;
 
   const cambios: { descripcion: string; campo: string; antes: unknown; despues: unknown }[] = [];
-  if (actual.valorVehiculo !== d.valorVehiculo || actual.modeloId !== d.modeloId) {
+  if (actual.valorVehiculo !== d.valorVehiculo || actual.modeloId !== d.modeloId || actual.versionId !== (version?.id ?? null)) {
     cambios.push({
       campo: "valorVehiculo",
       antes: actual.valorVehiculo,
       despues: d.valorVehiculo,
       descripcion: actual.valorVehiculo
-        ? `Valor cambiado: ${plata(actual.valorVehiculo)} → ${plata(d.valorVehiculo)} (${modelo.linea})`
-        : `Valor asignado: ${plata(d.valorVehiculo)} (${modelo.linea})`,
+        ? `Valor cambiado: ${plata(actual.valorVehiculo)} → ${plata(d.valorVehiculo)} (${vehiculo})`
+        : `Valor asignado: ${plata(d.valorVehiculo)} (${vehiculo})`,
     });
   }
   if (actual.cuotaInicial !== d.cuotaInicial) {
@@ -89,6 +101,7 @@ export async function asignarValor(_previo: Resultado, formulario: FormData): Pr
       .update(t.solicitudes)
       .set({
         modeloId: d.modeloId,
+        versionId: version?.id ?? null,
         valorVehiculo: d.valorVehiculo,
         cuotaInicial: d.cuotaInicial,
         plazoMeses: d.plazoMeses,
@@ -213,4 +226,27 @@ export async function agregarNota(_previo: Resultado, formulario: FormData): Pro
   await db.insert(t.notas).values({ solicitudId: r.data.solicitudId, texto: r.data.texto, usuarioId });
   refresh();
   return { ok: true, mensaje: "Nota agregada." };
+}
+
+/* ---------- eliminar una solicitud ---------- */
+
+/**
+ * Borra la solicitud con todo lo suyo (referencias, cónyuge, documentos, historial,
+ * notas: la base de datos lo hace en cascada) y después los archivos del disco.
+ * La auditoría guarda solo que se eliminó, el radicado y el estado: no los datos del cliente.
+ */
+export async function eliminarSolicitud(solicitudId: string, ultimos4: string): Promise<Resultado> {
+  const { usuarioId, ip } = await exigirAsesora();
+  if (!z.uuid().safeParse(solicitudId).success) return { ok: false, mensaje: "Datos no válidos." };
+  const [s] = await db.select({ radicado: t.solicitudes.radicado, estado: t.solicitudes.estado }).from(t.solicitudes).where(eq(t.solicitudes.id, solicitudId));
+  if (!s) return { ok: false, mensaje: "La solicitud ya no existe." };
+  if (ultimos4.trim() !== s.radicado.slice(-4)) return { ok: false, mensaje: "Los dígitos no coinciden con el radicado." };
+
+  const archivos = await db.select({ clave: t.documentos.claveArchivo }).from(t.documentos).where(eq(t.documentos.solicitudId, solicitudId));
+  await db.transaction(async (tx) => {
+    await tx.delete(t.solicitudes).where(eq(t.solicitudes.id, solicitudId));
+    await tx.insert(t.auditoria).values({ actor: "asesora", usuarioId, accion: `Eliminó una solicitud (estaba en "${s.estado}")`, entidad: "solicitudes", entidadId: s.radicado, ip, detalle: { archivos: archivos.length } });
+  });
+  await Promise.allSettled(archivos.map((a) => almacenamiento.borrar(a.clave)));
+  redirect("/panel/solicitudes");
 }

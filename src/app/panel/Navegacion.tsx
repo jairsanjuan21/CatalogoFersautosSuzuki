@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { BotonSalir } from "@/componentes/BotonSalir";
 
 const ICONOS = {
   inicio: "M4 11l8-7 8 7v9h-5v-6H9v6H4z",
@@ -44,6 +45,9 @@ export function BarraNavegacion({ ruta }: { ruta: string | null }) {
           {e.texto}
         </Link>
       ))}
+      <div className="mt-auto hidden border-t border-linea pt-2 lg:block">
+        <BotonSalir variante="lateral" />
+      </div>
     </nav>
   );
 }

@@ -18,8 +18,9 @@ export async function resumenAdmin() {
     db
       .select({ n: count() })
       .from(t.preciosVigentes)
-      .innerJoin(t.modelos, eq(t.modelos.id, t.preciosVigentes.modeloId))
-      .where(and(eq(t.preciosVigentes.desactualizado, true), eq(t.modelos.visible, true))),
+      .innerJoin(t.versiones, eq(t.versiones.id, t.preciosVigentes.versionId))
+      .innerJoin(t.modelos, eq(t.modelos.id, t.versiones.modeloId))
+      .where(and(eq(t.preciosVigentes.desactualizado, true), eq(t.modelos.visible, true), eq(t.versiones.visible, true))),
     db.select({ whatsapp: t.configuracion.asesoraWhatsapp, foto: t.configuracion.asesoraFoto }).from(t.configuracion).limit(1),
     db.select({ n: count() }).from(t.auditoria).where(and(like(t.auditoria.accion, "Intento de inicio de sesión fallido%"), gte(t.auditoria.creadoEn, hace7))),
     db

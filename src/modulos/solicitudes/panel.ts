@@ -4,6 +4,7 @@ import { db } from "@/db";
 import * as t from "@/db/esquema";
 import type { Estado } from "@/lib/etiquetas";
 import { obtenerSolicitudCompleta } from "./consultar";
+import { nombreVersion } from "@/lib/formato";
 
 const DIA = 86_400_000;
 
@@ -88,11 +89,13 @@ export async function resumenPanel() {
       .innerJoin(ultimoMovimiento, eq(ultimoMovimiento.solicitudId, t.solicitudes.id))
       .where(and(eq(t.solicitudes.estado, "en_estudio"), lt(ultimoMovimiento.ultimo, hace3)))
       .orderBy(asc(ultimoMovimiento.ultimo)),
+    // Versiones (no modelos) con precio vencido: cada una se muestra "a consultar"
     db
-      .select({ linea: t.modelos.linea })
+      .select({ linea: t.modelos.linea, nombre: t.versiones.nombre, transmision: t.versiones.transmision })
       .from(t.preciosVigentes)
-      .innerJoin(t.modelos, eq(t.modelos.id, t.preciosVigentes.modeloId))
-      .where(and(eq(t.preciosVigentes.desactualizado, true), eq(t.modelos.visible, true), eq(t.modelos.mostrarPrecio, true))),
+      .innerJoin(t.versiones, eq(t.versiones.id, t.preciosVigentes.versionId))
+      .innerJoin(t.modelos, eq(t.modelos.id, t.versiones.modeloId))
+      .where(and(eq(t.preciosVigentes.desactualizado, true), eq(t.modelos.visible, true), eq(t.versiones.visible, true), eq(t.modelos.mostrarPrecio, true))),
     db
       .select({ linea: t.modelos.linea, hasta: t.promociones.hasta })
       .from(t.promociones)
@@ -108,19 +111,28 @@ export async function resumenPanel() {
 export async function detalleSolicitud(id: string) {
   const solicitud = await obtenerSolicitudCompleta(id);
   if (!solicitud) return null;
-  const [historial, notas, modelos] = await Promise.all([
+  const [historial, notas, modelos, versiones] = await Promise.all([
     db.select().from(t.historial).where(eq(t.historial.solicitudId, id)).orderBy(desc(t.historial.creadoEn), desc(t.historial.id)),
     db.select().from(t.notas).where(eq(t.notas.solicitudId, id)).orderBy(desc(t.notas.creadoEn)),
     db
-      .select({
-        id: t.modelos.id,
-        linea: t.modelos.linea,
-        precio: t.preciosVigentes.precioLista,
-        vigenteDesde: t.preciosVigentes.vigenteDesde,
-      })
+      .select({ id: t.modelos.id, linea: t.modelos.linea })
       .from(t.modelos)
-      .leftJoin(t.preciosVigentes, eq(t.preciosVigentes.modeloId, t.modelos.id))
+      .where(solicitud.modeloId ? or(eq(t.modelos.archivado, false), eq(t.modelos.id, solicitud.modeloId)) : eq(t.modelos.archivado, false))
       .orderBy(asc(t.modelos.orden)),
+    // Un modelo puede tener varias versiones: se consultan aparte para no duplicar modelos
+    db
+      .select({ id: t.versiones.id, modeloId: t.versiones.modeloId, nombre: t.versiones.nombre, transmision: t.versiones.transmision, precio: t.preciosVigentes.precioLista })
+      .from(t.versiones)
+      .leftJoin(t.preciosVigentes, eq(t.preciosVigentes.versionId, t.versiones.id))
+      .orderBy(asc(t.versiones.orden), asc(t.versiones.nombre)),
   ]);
-  return { solicitud, historial, notas, modelos };
+  return {
+    solicitud,
+    historial,
+    notas,
+    modelos: modelos.map((m) => ({
+      ...m,
+      versiones: versiones.filter((v) => v.modeloId === m.id).map((v) => ({ id: v.id, etiqueta: nombreVersion(v), precio: v.precio })),
+    })),
+  };
 }

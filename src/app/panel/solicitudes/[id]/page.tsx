@@ -10,6 +10,7 @@ import { OPCIONES } from "@/validacion/solicitud";
 import { detalleSolicitud } from "@/modulos/solicitudes/panel";
 import { Cargando, EstadoBadge } from "../../componentes";
 import { BotonCargada, FormularioEstado, FormularioNota, FormularioValor, MarcarVista } from "./clientes";
+import { EliminarSolicitud } from "./EliminarSolicitud";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Lista de ejemplo mientras Natalia confirma con qué entidades trabaja
@@ -126,9 +127,10 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
       <FormularioValor
         solicitudId={s.id}
         modelos={modelos}
-        plazos={conf?.plazosMeses ?? [12, 24, 36, 48, 60, 72, 84]}
+        // El plazo que la solicitud ya tiene se ofrece siempre, aunque se haya desactivado después
+        plazos={[...new Set([...(conf?.plazosMeses ?? []), s.plazoMeses])].sort((a, b) => a - b)}
         pendiente={s.estado === "pendiente_valor"}
-        valores={{ modeloId: s.modeloId ?? undefined, valorVehiculo: s.valorVehiculo, cuotaInicial: s.cuotaInicial, plazoMeses: s.plazoMeses, lineaInteres: s.lineaInteres }}
+        valores={{ modeloId: s.modeloId ?? undefined, versionId: s.versionId ?? undefined, valorVehiculo: s.valorVehiculo, cuotaInicial: s.cuotaInicial, plazoMeses: s.plazoMeses, lineaInteres: s.lineaInteres }}
       />
 
       <h2 className="font-display mt-7 mb-2.5 text-[22px] font-semibold">Estado</h2>
@@ -205,6 +207,10 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
           </li>
         ))}
       </ul>
+
+      <div className="mt-10 border-t border-linea pt-5">
+        <EliminarSolicitud solicitudId={s.id} radicado={s.radicado} estado={s.estado} />
+      </div>
     </>
   );
 }

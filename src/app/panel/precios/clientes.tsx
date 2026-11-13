@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useActionState, useOptimistic, useRef, useState, useTransition, type FormEvent } from "react";
+import { startTransition, useActionState, useOptimistic, useRef, useState, useTransition } from "react";
 import {
   cambiarMostrarPrecio,
   crearPromocion,
@@ -19,98 +19,120 @@ const soloDigitos = (v: string) => {
   return d ? Number(d) : undefined;
 };
 
-export interface FilaPrecio {
+export interface VersionPrecio {
   id: string;
-  linea: string;
-  tipo: string;
+  etiqueta: string; // "GL 1.2 mecánica"
   precio: number | null;
-  mostrarPrecio: boolean;
   desactualizado: boolean;
   actualizado: string; // "hace 2 días", ya calculado en el servidor
   anterior: string | null; // "$ 76.990.000 el 21 oct."
 }
 
-/* ---------- tabla de precios del día ---------- */
+export interface ModeloPrecios {
+  id: string;
+  linea: string;
+  tipo: string;
+  mostrarPrecio: boolean;
+  precioBase: number | null;
+  versiones: VersionPrecio[];
+}
 
-export function TablaPrecios({ filas, diasVigencia }: { filas: FilaPrecio[]; diasVigencia: number }) {
+/* ---------- precios del día: base + versiones de cada modelo ---------- */
+
+export function TablaPrecios({ modelos, diasVigencia }: { modelos: ModeloPrecios[]; diasVigencia: number }) {
   const [estado, accion, guardando] = useActionState(guardarPrecios, inicial);
+  // Una clave por campo: "base:<idModelo>" o "precio:<idVersion>", igual que espera el servidor
   const [valores, setValores] = useState<Record<string, number | undefined>>(() =>
-    Object.fromEntries(filas.map((f) => [f.id, f.precio ?? undefined])),
+    Object.fromEntries(
+      modelos.flatMap((m) => [[`base:${m.id}`, m.precioBase ?? undefined], ...m.versiones.map((v) => [`precio:${v.id}`, v.precio ?? undefined])]),
+    ),
   );
   const formulario = useRef<HTMLFormElement>(null);
-
   const enviar = (confirmar: boolean) => {
     const datos = new FormData(formulario.current!);
     if (confirmar) datos.set("confirmar", "1");
     startTransition(() => accion(datos));
   };
-  const alEnviar = (e: FormEvent) => {
-    e.preventDefault();
-    enviar(false);
-  };
   const hayAvisos = !!estado.avisos && Object.keys(estado.avisos).length > 0;
 
+  const Campo = (clave: string, etiqueta: string, actual: number | null) => {
+    const valor = valores[clave];
+    const cambio = actual && valor && valor !== actual ? valor - actual : 0;
+    const aviso = estado.avisos?.[clave];
+    const error = estado.errores?.[clave];
+    return (
+      <div>
+        <label htmlFor={clave} className="sr-only">{etiqueta}</label>
+        <input type="hidden" name={clave} value={valor ?? ""} />
+        <input
+          id={clave}
+          inputMode="numeric"
+          value={plata(valor)}
+          placeholder="$ 0"
+          onChange={(e) => setValores((v) => ({ ...v, [clave]: soloDigitos(e.target.value) }))}
+          aria-invalid={!!error || !!aviso}
+          className={`${claseInput} text-right ${aviso ? "border-ambar" : ""} ${error ? "border-senal" : ""}`}
+        />
+        {cambio !== 0 && !aviso && !error && (
+          <p className={`mt-1 text-right text-[13px] ${cambio > 0 ? "text-senal" : "text-ok"}`}>{cambio > 0 ? "Sube" : "Baja"} {plata(Math.abs(cambio))}</p>
+        )}
+        {aviso && <p className="mt-1 text-[13px] text-ambar">{aviso}</p>}
+        {error && <p className="mt-1 text-[13px] text-senal">{error}</p>}
+      </div>
+    );
+  };
+
   return (
-    <form ref={formulario} onSubmit={alEnviar}>
-      <div className="overflow-hidden rounded-xl border border-linea bg-superficie">
-        {filas.map((f) => {
-          const valor = valores[f.id];
-          const cambio = f.precio && valor && valor !== f.precio ? valor - f.precio : 0;
-          const aviso = estado.avisos?.[f.id];
-          const error = estado.errores?.[f.id];
-          return (
-            <div key={f.id} className="grid grid-cols-1 gap-2 border-b border-linea px-4 py-3.5 last:border-b-0 sm:grid-cols-[1fr_180px] sm:items-center">
+    <form ref={formulario} onSubmit={(e) => { e.preventDefault(); enviar(false); }}>
+      <div className="space-y-3">
+        {modelos.map((m) => (
+          <section key={m.id} className="rounded-xl border border-linea bg-superficie">
+            <header className="flex flex-wrap items-baseline justify-between gap-2 border-b border-linea px-4 py-3">
               <div>
-                <strong className="font-display text-lg">{f.linea}</strong> <span className="text-sm text-texto-2">{f.tipo}</span>
-                <p className={`text-[13px] ${f.desactualizado ? "font-semibold text-senal" : "text-texto-2"}`}>
-                  {f.precio ? `Actualizado ${f.actualizado}` : "Sin precio cargado"}
-                  {f.desactualizado && `. Lleva más de ${diasVigencia} días: no se muestra en el catálogo`}
-                </p>
-                {f.anterior && <p className="text-[13px] text-texto-2">Antes: {f.anterior}</p>}
-                <InterruptorPrecio modeloId={f.id} mostrar={f.mostrarPrecio} />
+                <strong className="font-display text-xl">{m.linea}</strong> <span className="text-sm text-texto-2">{m.tipo}</span>
               </div>
+              <InterruptorPrecio modeloId={m.id} mostrar={m.mostrarPrecio} />
+            </header>
+            <div className="grid grid-cols-1 gap-2 px-4 py-3 sm:grid-cols-[1fr_180px] sm:items-center">
               <div>
-                <label htmlFor={`p-${f.id}`} className="sr-only">Precio de {f.linea}</label>
-                <input type="hidden" name={`precio:${f.id}`} value={valor ?? ""} />
-                <input
-                  id={`p-${f.id}`}
-                  inputMode="numeric"
-                  value={plata(valor)}
-                  placeholder="$ 0"
-                  onChange={(e) => setValores((v) => ({ ...v, [f.id]: soloDigitos(e.target.value) }))}
-                  aria-invalid={!!error || !!aviso}
-                  className={`${claseInput} text-right ${aviso ? "border-ambar" : ""} ${error ? "border-senal" : ""}`}
-                />
-                {cambio !== 0 && !aviso && !error && (
-                  <p className={`mt-1 text-right text-[13px] ${cambio > 0 ? "text-senal" : "text-ok"}`}>
-                    {cambio > 0 ? "Sube" : "Baja"} {plata(Math.abs(cambio))}
-                  </p>
-                )}
-                {aviso && <p className="mt-1 text-[13px] text-ambar">{aviso}</p>}
-                {error && <p className="mt-1 text-[13px] text-senal">{error}</p>}
+                <span className="font-semibold">Precio base</span>
+                <p className="text-[13px] text-texto-2">El “Desde” del catálogo. Es fijo: cámbialo solo si cambia de verdad.</p>
               </div>
+              {Campo(`base:${m.id}`, `Precio base de ${m.linea}`, m.precioBase)}
             </div>
-          );
-        })}
+            {m.versiones.length === 0 && <p className="border-t border-linea px-4 py-3 text-sm text-texto-2">Sin versiones: pídele al administrador que las agregue.</p>}
+            {m.versiones.map((v) => (
+              <div key={v.id} className="grid grid-cols-1 gap-2 border-t border-linea px-4 py-3 sm:grid-cols-[1fr_180px] sm:items-center">
+                <div>
+                  <span>{v.etiqueta}</span>
+                  <p className={`text-[13px] ${v.desactualizado ? "font-semibold text-senal" : "text-texto-2"}`}>
+                    {v.precio ? `Actualizado ${v.actualizado}` : "Sin precio cargado"}
+                    {v.desactualizado && `. Más de ${diasVigencia} días: el catálogo la muestra “a consultar”`}
+                  </p>
+                  {v.anterior && <p className="text-[13px] text-texto-2">Antes: {v.anterior}</p>}
+                </div>
+                {Campo(`precio:${v.id}`, `Precio de ${m.linea} ${v.etiqueta}`, v.precio)}
+              </div>
+            ))}
+          </section>
+        ))}
       </div>
 
       <div className="mt-3.5 flex flex-wrap items-center gap-2.5">
-        {hayAvisos ? (
+        {hayAvisos && (
           <>
             <button type="button" disabled={guardando} onClick={() => enviar(true)} className="min-h-11 rounded-lg bg-azul px-4 font-semibold text-white disabled:opacity-60">
               Sí, guardar igual
             </button>
             <span className="text-sm text-texto-2">o corrige los precios marcados y vuelve a guardar.</span>
           </>
-        ) : null}
+        )}
         <button disabled={guardando} className={`min-h-11 rounded-lg px-4 font-semibold disabled:opacity-60 ${hayAvisos ? "border border-linea-2 bg-superficie" : "bg-azul text-white hover:bg-azul-hover"}`}>
           {guardando ? "Guardando…" : "Guardar precios de hoy"}
         </button>
       </div>
       {estado.mensaje && (
-        <p role="status" className={`mt-3 text-[15px] ${estado.ok ? "text-ok" : hayAvisos ? "text-ambar" : "text-senal"}`}>
-          {estado.mensaje}
-        </p>
+        <p role="status" className={`mt-3 text-[15px] ${estado.ok ? "text-ok" : hayAvisos ? "text-ambar" : "text-senal"}`}>{estado.mensaje}</p>
       )}
     </form>
   );

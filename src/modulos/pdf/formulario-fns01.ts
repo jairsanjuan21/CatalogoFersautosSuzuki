@@ -4,6 +4,7 @@ import path from "node:path";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { OPCIONES } from "@/validacion/solicitud";
 import type { SolicitudCompleta } from "@/modulos/solicitudes/consultar";
+import { nombreVersion } from "@/lib/formato";
 import { P1, P2, ALTO_PAGINA } from "./coordenadas-fns01";
 import { Estampador } from "./estampar";
 
@@ -49,7 +50,8 @@ export async function generarFormularioFns01(s: SolicitudCompleta, fijos: DatosF
 
   /* ----- 1. vehículo ----- */
   e1.celda(P1.marca, fijos.marca);
-  e1.celda(P1.linea, s.modelo?.linea ?? s.lineaInteres);
+  // "Línea" lleva el modelo con su versión: es lo que necesita la financiera para cotizar
+  e1.celda(P1.linea, s.modelo ? [s.modelo.linea, s.version && nombreVersion(s.version)].filter(Boolean).join(" ") : s.lineaInteres);
   e1.marca(P1.marcaNuevo);
   e1.marca(P1.marcaParticular);
 

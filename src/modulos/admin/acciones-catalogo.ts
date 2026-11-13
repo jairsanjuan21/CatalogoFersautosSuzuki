@@ -2,7 +2,7 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, asc, eq, max, ne } from "drizzle-orm";
+import { and, asc, count, eq, max, ne } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import * as t from "@/db/esquema";
@@ -64,6 +64,7 @@ export async function guardarModelo(_previo: ResultadoAdmin, formulario: FormDat
   const [antes] = await db.select().from(t.modelos).where(eq(t.modelos.id, id));
   if (!antes) return { ok: false, mensaje: "El modelo no existe." };
 
+  if (antes.archivado && datos.visible) return { ok: false, mensaje: "Este modelo está archivado: sácalo del archivo antes de hacerlo visible." };
   await db.update(t.modelos).set(datos).where(eq(t.modelos.id, id));
   await db.insert(t.auditoria).values({ actor: "admin", usuarioId, accion: "Editó un modelo del catálogo", entidad: "modelos", entidadId: datos.linea, ip, detalle: datos });
   refresh();
@@ -142,4 +143,94 @@ export async function moverFoto(fotoId: string, movimiento: "portada" | -1 | 1):
   });
   refresh();
   return { ok: true };
+}
+
+/* ---------- versiones del modelo ---------- */
+
+const esquemaVersion = z.object({
+  id: z.union([uuid, z.literal("")]).transform((v) => v || null), // vacío = versión nueva
+  modeloId: uuid,
+  nombre: z.string().trim().min(1, { error: "Escribe el nombre de la versión." }).max(40, { error: "Máximo 40 caracteres." }),
+  transmision: z.enum(["", "mecanica", "automatica"]).transform((v) => (v === "" ? null : v)),
+  orden: z.coerce.number().int().min(0).max(99),
+  visible: z.preprocess((v) => v === "on", z.boolean()),
+});
+
+export async function guardarVersion(_previo: ResultadoAdmin, formulario: FormData): Promise<ResultadoAdmin> {
+  const { usuarioId, ip } = await exigirAdmin();
+  const r = esquemaVersion.safeParse(Object.fromEntries(formulario));
+  if (!r.success) return { ok: false, errores: erroresPorCampo(r.error) };
+  const { id, ...datos } = r.data;
+  try {
+    if (id) {
+      const [v] = await db.update(t.versiones).set(datos).where(and(eq(t.versiones.id, id), eq(t.versiones.modeloId, datos.modeloId))).returning({ id: t.versiones.id });
+      if (!v) return { ok: false, mensaje: "La versión ya no existe." };
+    } else {
+      await db.insert(t.versiones).values(datos);
+    }
+  } catch (e) {
+    // El índice único (modelo, nombre, transmisión) avisa si ya existe
+    if (String((e as { cause?: { code?: string } })?.cause?.code ?? (e as { code?: string }).code) === "23505") {
+      return { ok: false, errores: { nombre: "Ya existe una versión con ese nombre y esa transmisión." } };
+    }
+    throw e;
+  }
+  await db.insert(t.auditoria).values({ actor: "admin", usuarioId, accion: id ? "Editó una versión" : "Agregó una versión", entidad: "versiones", entidadId: datos.nombre, ip, detalle: datos });
+  refresh();
+  return { ok: true, mensaje: id ? "Versión guardada." : "Versión agregada." };
+}
+
+/** Solo se borran versiones sin historial de precios: las demás se ocultan, para no perder ese historial. */
+export async function borrarVersion(versionId: string): Promise<ResultadoAdmin> {
+  const { usuarioId, ip } = await exigirAdmin();
+  if (!uuid.safeParse(versionId).success) return { ok: false, mensaje: "Datos no válidos." };
+  const [{ n }] = await db.select({ n: count() }).from(t.precios).where(eq(t.precios.versionId, versionId));
+  if (n > 0) return { ok: false, mensaje: "Esta versión tiene historial de precios: ocúltala en lugar de borrarla." };
+  const [v] = await db.delete(t.versiones).where(eq(t.versiones.id, versionId)).returning({ nombre: t.versiones.nombre });
+  if (!v) return { ok: false, mensaje: "La versión ya no existe." };
+  await db.insert(t.auditoria).values({ actor: "admin", usuarioId, accion: "Borró una versión sin precios", entidad: "versiones", entidadId: v.nombre, ip });
+  refresh();
+  return { ok: true, mensaje: "Versión borrada." };
+}
+
+/* ---------- archivar y eliminar modelos ---------- */
+
+/** Archivar: deja de venderse (sale del catálogo y del panel de precios) sin perder nada. */
+export async function archivarModelo(modeloId: string, archivar: boolean): Promise<ResultadoAdmin> {
+  const { usuarioId, ip } = await exigirAdmin();
+  if (!uuid.safeParse(modeloId).success) return { ok: false, mensaje: "Datos no válidos." };
+  const [m] = await db
+    .update(t.modelos)
+    .set(archivar ? { archivado: true, visible: false } : { archivado: false })
+    .where(eq(t.modelos.id, modeloId))
+    .returning({ linea: t.modelos.linea });
+  if (!m) return { ok: false, mensaje: "El modelo no existe." };
+  await db.insert(t.auditoria).values({ actor: "admin", usuarioId, accion: archivar ? "Archivó un modelo" : "Sacó un modelo del archivo", entidad: "modelos", entidadId: m.linea, ip });
+  refresh();
+  return { ok: true, mensaje: archivar ? `${m.linea} archivado: ya no aparece en el catálogo ni en precios.` : `${m.linea} salió del archivo. Sigue oculto hasta que lo marques como visible.` };
+}
+
+/**
+ * Eliminar: solo si ninguna solicitud lo usa. Si alguna lo usa, la base de datos le
+ * quitaría el modelo a esa solicitud (SET NULL) y su PDF quedaría con la línea vacía.
+ * Se pide escribir el nombre del modelo para confirmar.
+ */
+export async function eliminarModelo(modeloId: string, confirmacion: string): Promise<ResultadoAdmin> {
+  const { usuarioId, ip } = await exigirAdmin();
+  if (!uuid.safeParse(modeloId).success) return { ok: false, mensaje: "Datos no válidos." };
+  const [m] = await db.select({ linea: t.modelos.linea }).from(t.modelos).where(eq(t.modelos.id, modeloId));
+  if (!m) return { ok: false, mensaje: "El modelo ya no existe." };
+  if (confirmacion.trim().toLowerCase() !== m.linea.toLowerCase()) return { ok: false, mensaje: `Escribe “${m.linea}” para confirmar.` };
+
+  const [{ n }] = await db.select({ n: count() }).from(t.solicitudes).where(eq(t.solicitudes.modeloId, modeloId));
+  if (n > 0) return { ok: false, mensaje: `${n} ${n === 1 ? "solicitud usa" : "solicitudes usan"} este modelo. Archívalo en lugar de eliminarlo.` };
+
+  // La cascada borra las filas de fotos, versiones, precios y promociones; los archivos hay que borrarlos aparte
+  const fotos = await db.select({ clave: t.fotosModelo.claveArchivo }).from(t.fotosModelo).where(eq(t.fotosModelo.modeloId, modeloId));
+  await db.transaction(async (tx) => {
+    await tx.delete(t.modelos).where(eq(t.modelos.id, modeloId));
+    await tx.insert(t.auditoria).values({ actor: "admin", usuarioId, accion: "Eliminó un modelo del catálogo", entidad: "modelos", entidadId: m.linea, ip, detalle: { fotos: fotos.length } });
+  });
+  await Promise.allSettled(fotos.map((f) => borrarFotoPublica(f.clave)));
+  redirect("/admin/catalogo");
 }

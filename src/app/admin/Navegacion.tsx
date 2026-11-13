@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { BotonSalir } from "@/componentes/BotonSalir";
 
 const ENLACES = [
   { href: "/admin", texto: "Resumen", icono: "M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-3H4zM14 7h6V4h-6z" },
@@ -35,10 +36,15 @@ export function BarraAdmin({ ruta }: { ruta: string | null }) {
             </Link>
           </li>
         ))}
+        {/* En el celular el menú es una fila horizontal: "Cerrar sesión" va al final de ella */}
+        <li className="lg:hidden">
+          <BotonSalir variante="oscuro" />
+        </li>
       </ul>
-      <p className="mt-auto hidden border-t border-[#2c3b54] px-5 py-4 text-[13px] lg:block">
-        Cuenta técnica: sin acceso a los datos financieros de los clientes.
-      </p>
+      <div className="mt-auto hidden border-t border-[#2c3b54] px-2.5 py-3 lg:block">
+        <BotonSalir variante="oscuro" />
+        <p className="mt-2 px-3 text-[13px]">Cuenta técnica: sin acceso a los datos financieros de los clientes.</p>
+      </div>
     </nav>
   );
 }

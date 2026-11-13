@@ -5,7 +5,7 @@ import { connection } from "next/server";
 import { datosAsesora, modelosCatalogo } from "@/modulos/catalogo/consultas";
 import { atributosFoto } from "@/modulos/fotos/fotos";
 import { Modelos, type TarjetaModelo } from "./Modelos";
-import { fechaLarga, textoPromocion, TIPO_TEXTO } from "./textos";
+import { textoPromocion, TIPO_TEXTO } from "./textos";
 
 export const metadata: Metadata = {
   title: "Estrena tu Suzuki con Natalia | Fersautos Cúcuta",
@@ -44,7 +44,6 @@ async function Contenido() {
     tipoTexto: TIPO_TEXTO[m.tipo],
     puestos: m.puestos,
     precio: m.precio,
-    actualizado: m.actualizado ? fechaLarga(m.actualizado) : null,
     promocion: m.promocion ? textoPromocion(m.promocion) : null,
     foto: m.portada ? atributosFoto(m.portada) : null,
   }));

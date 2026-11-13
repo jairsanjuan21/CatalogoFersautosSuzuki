@@ -5,7 +5,6 @@ import { eq } from "drizzle-orm";
 import { db, pool } from "@/db";
 import * as t from "@/db/esquema";
 import { generarDocumento } from "@/modulos/pdf/documentos";
-import { desc, eq } from "drizzle-orm";
 
 /**
  * Genera los PDF de una solicitud en la carpeta pdf-pruebas/ (ignorada por Git).
@@ -17,19 +16,8 @@ async function main() {
   if (!values.radicado) throw new Error("Uso: npm run pdf:prueba -- --radicado FS-AAMMDD-NNNN");
 
   const [fila] = await db.select({ id: t.solicitudes.id }).from(t.solicitudes).where(eq(t.solicitudes.radicado, values.radicado));
-  if (!fila) {
-    const recientes = await db
-      .select({ radicado: t.solicitudes.radicado, nombres: t.solicitudes.nombres, valor: t.solicitudes.valorVehiculo })
-      .from(t.solicitudes)
-      .orderBy(desc(t.solicitudes.creadoEn))
-      .limit(8);
-    console.log(`\n✖ No existe la solicitud ${values.radicado}. Las más recientes son:\n`);
-    for (const r of recientes) {
-      console.log(`  ${r.radicado}  ${r.nombres.padEnd(20)} ${r.valor ? "con valor" : "SIN valor del vehículo"}`);
-    }
-    console.log("");
-    return;
-  }
+  if (!fila) throw new Error(`No existe la solicitud ${values.radicado}`);
+
   await mkdir("pdf-pruebas", { recursive: true });
   for (const tipo of ["formulario", "cedula"] as const) {
     try {

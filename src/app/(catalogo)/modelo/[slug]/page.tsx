@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { colorDe } from "@/componentes/Carro";
-import { enlaceWhatsapp, plata } from "@/lib/formato";
+import { enlaceWhatsapp, plata, TRANSMISIONES } from "@/lib/formato";
 import { datosAsesora, modeloPorSlug } from "@/modulos/catalogo/consultas";
 import { fechaLarga, TIPO_TEXTO } from "../../textos";
 import { SelectorColor } from "./SelectorColor";
@@ -70,13 +70,34 @@ async function Contenido({ params }: { params: Params }) {
             <>
               <small className="text-sm text-texto-2">Desde</small>
               <b className="font-display block text-[34px] leading-tight">{plata(m.precio)}</b>
-              <small className="text-sm text-texto-2">Precio con IVA, actualizado el {fechaLarga(m.actualizado!)}</small>
+              <small className="text-sm text-texto-2">Precio base con IVA. El valor final depende de la versión.</small>
             </>
           ) : (
             <>
               <b className="font-display block text-[26px] leading-tight">Precio a consultar</b>
               <small className="text-sm text-texto-2">Los precios cambian seguido. Escríbeme y te doy el valor de hoy.</small>
             </>
+          )}
+          {m.versiones.length > 0 && (
+            <div className="mt-4 border-t border-linea pt-3">
+              <p className="mb-1.5 text-sm font-semibold">Versiones</p>
+              <ul className="divide-y divide-linea">
+                {m.versiones.map((v) => (
+                  <li key={v.nombre + v.transmision} className="flex items-baseline justify-between gap-3 py-2">
+                    <span>
+                      {v.nombre}
+                      {v.transmision && <span className="ml-1.5 text-sm text-texto-2">{TRANSMISIONES[v.transmision]}</span>}
+                    </span>
+                    <span className={`whitespace-nowrap ${v.precio ? "font-semibold" : "text-sm text-azul-texto"}`}>{v.precio ? plata(v.precio) : "A consultar"}</span>
+                  </li>
+                ))}
+              </ul>
+              {m.versiones.some((v) => v.precio) && (
+                <p className="mt-1 text-[13px] text-texto-2">
+                  Precios con IVA, actualizados el {fechaLarga(new Date(Math.max(...m.versiones.filter((v) => v.actualizado).map((v) => v.actualizado!.getTime()))))}.
+                </p>
+              )}
+            </div>
           )}
           {m.promocion && (
             <p className="mt-2.5 rounded-lg bg-senal-fondo px-3 py-2.5 text-[15px] text-senal">

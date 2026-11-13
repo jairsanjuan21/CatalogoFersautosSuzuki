@@ -23,13 +23,22 @@ const PRECIO_MAXIMO = 2_000_000_000;
 
 export class ErrorLectura extends Error {}
 
+export interface VersionParaLeer {
+  id: string;
+  etiqueta: string; // "GL 1.2 mecánica"
+  precioActual: number | null;
+}
+
 export interface ModeloParaLeer {
   id: string;
   slug: string;
   linea: string;
   tipo: string;
-  precioActual: number | null;
+  versiones: VersionParaLeer[];
 }
+
+/** Código de cada versión para la IA: "swift~1", "swift~2"... y "swift~nueva" para versiones no registradas */
+const codigo = (slug: string, i: number | "nueva") => `${slug}~${i === "nueva" ? "nueva" : i + 1}`;
 
 /** Revisa el archivo antes de gastar una llamada a la API. */
 export async function validarPdf(datos: Buffer) {
@@ -45,14 +54,14 @@ export async function validarPdf(datos: Buffer) {
   return paginas;
 }
 
-function esquemaRespuesta(slugs: string[]) {
+function esquemaRespuesta(codigos: string[]) {
   return z.object({
     vigencia: z.string().describe("Vigencia o fecha de la lista tal como aparece en el documento. Cadena vacía si no aparece."),
     filas: z
       .array(
         z.object({
           texto: z.string().describe("Modelo, versión y transmisión tal como aparecen en el PDF."),
-          modelo: z.enum(["ninguno", ...slugs] as [string, ...string[]]).describe("Código del catálogo al que pertenece esta fila, o 'ninguno'."),
+          version: z.enum(["ninguno", ...codigos] as [string, ...string[]]).describe("Código de la versión del catálogo (ej. 'swift~1'), '<modelo>~nueva' o 'ninguno'."),
           precio_publico: z.number().int().min(0).max(5_000_000_000).describe("Precio al público CON IVA, en pesos, como número entero sin puntos ni comas."),
           observacion: z.string().describe("Bono, promoción o nota de esa fila. Cadena vacía si no hay."),
         }),
@@ -62,8 +71,22 @@ function esquemaRespuesta(slugs: string[]) {
   });
 }
 
+type Extraccion = z.infer<ReturnType<typeof esquemaRespuesta>>;
+
+function codigosDe(modelos: ModeloParaLeer[]) {
+  return modelos.flatMap((m) => [...m.versiones.map((_, i) => codigo(m.slug, i)), codigo(m.slug, "nueva")]);
+}
+
 function instrucciones(modelos: ModeloParaLeer[]) {
-  const catalogo = modelos.map((m) => `- ${m.slug}: ${m.linea} (${m.tipo})`).join("\n");
+  const catalogo = modelos
+    .map((m) =>
+      [
+        `${m.linea} (${m.tipo}):`,
+        ...m.versiones.map((v, i) => `  ${codigo(m.slug, i)}: ${m.linea} ${v.etiqueta}`),
+        `  ${codigo(m.slug, "nueva")}: otra versión de ${m.linea} que no está en esta lista`,
+      ].join("\n"),
+    )
+    .join("\n");
   return `Eres un asistente que extrae precios de listas de precios de vehículos de un concesionario en Colombia.
 
 Del PDF adjunto, extrae CADA versión de vehículo que tenga precio, una fila por versión.
@@ -72,59 +95,81 @@ Reglas:
 1. precio_publico es el precio final al público CON IVA incluido. Si hay una columna "antes de IVA" y otra con IVA, usa la que incluye IVA. Si solo hay una columna de precio, usa esa.
 2. En Colombia el punto separa miles: "78.990.000" es 78990000. Devuelve el número entero, sin puntos ni comas.
 3. No confundas bonos, descuentos ni cuotas con el precio del vehículo. Eso va en "observacion".
-4. Para "modelo", usa el código del catálogo cuando la fila sea de esa misma línea, aunque cambien la versión, la transmisión, las mayúsculas o los guiones (por ejemplo "S PRESSO GL" es "s-presso"). Si la línea no está en el catálogo, usa "ninguno". No adivines: ante la duda, "ninguno".
+4. Para "version", busca en el catálogo la versión que coincida con la fila en NOMBRE y en TRANSMISIÓN (mecánica o automática). Ignora diferencias de mayúsculas, guiones o espacios ("S PRESSO GL" es el S-Presso).
+   - Si el modelo está en el catálogo pero ninguna versión coincide, usa "<modelo>~nueva".
+   - Si el modelo no está en el catálogo, usa "ninguno".
+   - No adivines: ante la duda entre dos versiones, usa "<modelo>~nueva".
 5. No inventes filas ni precios. Si un valor no se puede leer, omite la fila y explícalo en "advertencias".
 
-Catálogo actual (código: nombre):
+Catálogo actual:
 ${catalogo}`;
+}
+
+export interface PropuestaVersion {
+  versionId: string;
+  etiqueta: string;
+  precioActual: number | null;
+  precioLeido: number;
+  cambioPct: number | null;
+  texto: string; // la fila tal como venía en el PDF
+  observacion: string;
 }
 
 export interface PropuestaModelo {
   modeloId: string;
   linea: string;
-  precioActual: number | null;
-  precioLeido: number;
-  cambioPct: number | null;
-  versiones: { texto: string; precio: number; observacion: string }[];
+  versiones: PropuestaVersion[];
 }
 
 export interface ResultadoLectura {
   vigencia: string;
   propuesta: PropuestaModelo[];
+  versionesNuevas: { linea: string; texto: string; precio: number }[];
   sinCoincidencia: { texto: string; precio: number }[];
   descartadas: { texto: string; motivo: string }[];
   advertencias: string[];
   uso: { modelo: string; entrada: number; salida: number; paginas: number };
 }
 
-/** Convierte las filas extraídas en una propuesta por modelo. Función pura: se prueba sin la API. */
-export function armarPropuesta(filas: z.infer<ReturnType<typeof esquemaRespuesta>>["filas"], modelos: ModeloParaLeer[]) {
+/** Convierte las filas extraídas en una propuesta por versión. Función pura: se prueba sin la API. */
+export function armarPropuesta(filas: Extraccion["filas"], modelos: ModeloParaLeer[]) {
   const propuesta: PropuestaModelo[] = [];
+  const versionesNuevas: ResultadoLectura["versionesNuevas"] = [];
   const sinCoincidencia: ResultadoLectura["sinCoincidencia"] = [];
   const descartadas: ResultadoLectura["descartadas"] = [];
+
   const validas = filas.filter((f) => {
     const ok = Number.isInteger(f.precio_publico) && f.precio_publico >= PRECIO_MINIMO && f.precio_publico <= PRECIO_MAXIMO;
     if (!ok) descartadas.push({ texto: f.texto, motivo: `Precio fuera de rango (${f.precio_publico.toLocaleString("es-CO")})` });
     return ok;
   });
-  for (const f of validas) if (f.modelo === "ninguno") sinCoincidencia.push({ texto: f.texto, precio: f.precio_publico });
+
+  for (const f of validas) if (f.version === "ninguno") sinCoincidencia.push({ texto: f.texto, precio: f.precio_publico });
+
   for (const m of modelos) {
-    const versiones = validas.filter((f) => f.modelo === m.slug).map((f) => ({ texto: f.texto, precio: f.precio_publico, observacion: f.observacion }));
-    if (!versiones.length) continue;
-    const precioLeido = Math.min(...versiones.map((v) => v.precio)); // el catálogo muestra el precio "desde"
-    propuesta.push({
-      modeloId: m.id,
-      linea: m.linea,
-      precioActual: m.precioActual,
-      precioLeido,
-      cambioPct: m.precioActual ? Math.round(((precioLeido - m.precioActual) / m.precioActual) * 1000) / 10 : null,
-      versiones: versiones.sort((a, b) => a.precio - b.precio),
+    for (const f of validas.filter((x) => x.version === codigo(m.slug, "nueva"))) versionesNuevas.push({ linea: m.linea, texto: f.texto, precio: f.precio_publico });
+    const versiones: PropuestaVersion[] = [];
+    m.versiones.forEach((v, i) => {
+      const coincidencias = validas.filter((f) => f.version === codigo(m.slug, i));
+      if (!coincidencias.length) return;
+      const [f, ...repetidas] = coincidencias;
+      // Si la IA asignó dos filas a la misma versión, se usa la primera y el resto se avisa
+      for (const r of repetidas) descartadas.push({ texto: r.texto, motivo: `Otra fila ya se asignó a ${m.linea} ${v.etiqueta}` });
+      versiones.push({
+        versionId: v.id,
+        etiqueta: v.etiqueta,
+        precioActual: v.precioActual,
+        precioLeido: f.precio_publico,
+        cambioPct: v.precioActual ? Math.round(((f.precio_publico - v.precioActual) / v.precioActual) * 1000) / 10 : null,
+        texto: f.texto,
+        observacion: f.observacion,
+      });
     });
+    if (versiones.length) propuesta.push({ modeloId: m.id, linea: m.linea, versiones });
   }
-  return { propuesta, sinCoincidencia, descartadas };
+  return { propuesta, versionesNuevas, sinCoincidencia, descartadas };
 }
 
-type Extraccion = z.infer<ReturnType<typeof esquemaRespuesta>>;
 interface ResultadoProveedor {
   datos: Extraccion;
   uso: { modelo: string; entrada: number; salida: number };
@@ -138,7 +183,7 @@ const extraerConGemini: Proveedor = async (pdf, modelos) => {
   if (!llave) throw new ErrorLectura("La lectura con IA no está configurada (falta GEMINI_API_KEY).");
   const modelo = process.env.IA_MODELO || "gemini-3.5-flash";
   const base = process.env.GEMINI_BASE_URL || "https://generativelanguage.googleapis.com";
-  const esquema = esquemaRespuesta(modelos.map((m) => m.slug));
+  const esquema = esquemaRespuesta(codigosDe(modelos));
   // Zod 4 genera el JSON Schema; se quita "$schema", que la API no necesita
   const jsonSchema = z.toJSONSchema(esquema, { target: "draft-2020-12" }) as Record<string, unknown>;
   delete jsonSchema.$schema;
@@ -212,7 +257,7 @@ const extraerConAnthropic: Proveedor = async (pdf, modelos) => {
           ],
         },
       ],
-      output_config: { format: zodOutputFormat(esquemaRespuesta(modelos.map((m) => m.slug))) },
+      output_config: { format: zodOutputFormat(esquemaRespuesta(codigosDe(modelos))) },
     });
   } catch (e) {
     if (e instanceof Anthropic.AuthenticationError) throw new ErrorLectura("La llave de la API no es válida. Revisa ANTHROPIC_API_KEY.");
@@ -229,7 +274,7 @@ const extraerConAnthropic: Proveedor = async (pdf, modelos) => {
 const PROVEEDORES: Record<string, Proveedor> = { gemini: extraerConGemini, anthropic: extraerConAnthropic };
 
 export async function leerPreciosDePdf(pdf: Buffer, modelos: ModeloParaLeer[]): Promise<ResultadoLectura> {
-  if (!modelos.length) throw new ErrorLectura("No hay modelos visibles en el catálogo para comparar.");
+  if (!modelos.some((m) => m.versiones.length)) throw new ErrorLectura("No hay versiones en el catálogo para comparar. El administrador debe agregarlas.");
   const nombre = process.env.IA_PROVEEDOR || "gemini";
   const proveedor = PROVEEDORES[nombre];
   if (!proveedor) throw new ErrorLectura(`IA_PROVEEDOR="${nombre}" no existe. Usa "gemini" o "anthropic".`);

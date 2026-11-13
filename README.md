@@ -109,6 +109,18 @@ Natalia descarga los PDF desde `GET /api/solicitudes/:id/pdf?tipo=formulario|ced
 cuenta de asesora puede hacerlo, el formulario exige que la solicitud tenga valor del vehículo y
 cada descarga queda en la auditoría con la huella SHA-256 del archivo.
 
+## Modelos, versiones y precios
+
+Cada modelo tiene un **precio base** fijo (el "Desde" del catálogo) y varias **versiones**
+(ej: Swift GL 1.2 mecánica, Swift GLX 1.2 automática), cada una con su propio precio.
+
+- El **administrador** crea las versiones en **Admin → Catálogo → (modelo) → Versiones**. Una versión
+  con historial de precios no se puede borrar: se oculta, para no perder ese historial.
+- **Natalia** actualiza el precio base y el de cada versión en **Panel → Precios**. El precio de una
+  versión con más días de los configurados sin actualizar aparece "A consultar" en el catálogo; el
+  precio base no se vence.
+- En cada solicitud, Natalia elige **modelo y versión**; el PDF muestra ambos en el campo "Línea".
+
 ## Lectura de precios con IA
 
 En **Panel → Precios**, Natalia sube el PDF de precios que le llega y el sistema le muestra una

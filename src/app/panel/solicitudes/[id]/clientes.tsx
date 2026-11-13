@@ -44,8 +44,7 @@ export function MarcarVista({ solicitudId }: { solicitudId: string }) {
 interface ModeloConPrecio {
   id: string;
   linea: string;
-  precio: number | null;
-  vigenteDesde: Date | null;
+  versiones: { id: string; etiqueta: string; precio: number | null }[];
 }
 
 export function FormularioValor({
@@ -59,14 +58,16 @@ export function FormularioValor({
   modelos: ModeloConPrecio[];
   plazos: number[];
   pendiente: boolean;
-  valores: { modeloId?: string; valorVehiculo: number | null; cuotaInicial: number; plazoMeses: number; lineaInteres: string | null };
+  valores: { modeloId?: string; versionId?: string; valorVehiculo: number | null; cuotaInicial: number; plazoMeses: number; lineaInteres: string | null };
 }) {
   const [estado, accion, guardando] = useActionState(asignarValor, inicial);
   const sugerido = valores.modeloId ?? modelos.find((m) => m.linea === valores.lineaInteres)?.id ?? "";
   const [modeloId, setModeloId] = useState(sugerido);
+  const [versionId, setVersionId] = useState(valores.versionId ?? "");
   const [valor, setValor] = useState<number | undefined>(valores.valorVehiculo ?? undefined);
   const [cuota, setCuota] = useState<number | undefined>(valores.cuotaInicial);
   const modelo = modelos.find((m) => m.id === modeloId);
+  const version = modelo?.versiones.find((v) => v.id === versionId);
   const aFinanciar = valor !== undefined && cuota !== undefined ? valor - cuota : undefined;
   const err = estado.errores ?? {};
   const soloDigitos = (v: string) => {
@@ -77,12 +78,25 @@ export function FormularioValor({
   return (
     <form onSubmit={enviarSinReiniciar(accion)} className="rounded-xl border border-linea bg-superficie p-4">
       <input type="hidden" name="solicitudId" value={solicitudId} />
+      <input type="hidden" name="versionId" value={versionId} />
       <input type="hidden" name="valorVehiculo" value={valor ?? ""} />
       <input type="hidden" name="cuotaInicial" value={cuota ?? ""} />
       <div className="grid gap-3.5 sm:grid-cols-2">
         <div>
           <label htmlFor="modelo" className="mb-1 block text-sm font-semibold">Modelo</label>
-          <select id="modelo" name="modeloId" value={modeloId} onChange={(e) => setModeloId(e.target.value)} aria-invalid={!!err.modeloId} className={claseInput}>
+          <select
+            id="modelo"
+            name="modeloId"
+            value={modeloId}
+            onChange={(e) => {
+              setModeloId(e.target.value);
+              // Al cambiar de modelo, la versión anterior ya no aplica; si hay una sola, se elige sola
+              const vs = modelos.find((m) => m.id === e.target.value)?.versiones ?? [];
+              setVersionId(vs.length === 1 ? vs[0].id : "");
+            }}
+            aria-invalid={!!err.modeloId}
+            className={claseInput}
+          >
             <option value="">Selecciona</option>
             {modelos.map((m) => (
               <option key={m.id} value={m.id}>{m.linea}</option>
@@ -91,6 +105,18 @@ export function FormularioValor({
           <p className="mt-1 text-[13px] text-texto-2">El cliente marcó interés en: {valores.lineaInteres ?? "no indicó"}</p>
           {err.modeloId && <p className="mt-1 text-sm text-senal">{err.modeloId}</p>}
         </div>
+        {modelo && modelo.versiones.length > 0 && (
+          <div>
+            <label htmlFor="version" className="mb-1 block text-sm font-semibold">Versión</label>
+            <select id="version" value={versionId} onChange={(e) => setVersionId(e.target.value)} aria-invalid={!!err.versionId} className={claseInput}>
+              <option value="">Selecciona</option>
+              {modelo.versiones.map((v) => (
+                <option key={v.id} value={v.id}>{v.etiqueta}{v.precio ? ` (${plata(v.precio)})` : ""}</option>
+              ))}
+            </select>
+            {err.versionId && <p className="mt-1 text-sm text-senal">{err.versionId}</p>}
+          </div>
+        )}
         <div>
           <label htmlFor="plazo" className="mb-1 block text-sm font-semibold">Plazo</label>
           <select id="plazo" name="plazoMeses" defaultValue={valores.plazoMeses} className={claseInput}>
@@ -102,13 +128,13 @@ export function FormularioValor({
         <div>
           <label htmlFor="valor" className="mb-1 block text-sm font-semibold">Valor del vehículo</label>
           <input id="valor" inputMode="numeric" placeholder="$ 0" value={plata(valor)} onChange={(e) => setValor(soloDigitos(e.target.value))} aria-invalid={!!err.valorVehiculo} className={claseInput} />
-          {modelo?.precio ? (
+          {version?.precio ? (
             <p className="mt-1 text-[13px] text-texto-2">
-              Precio de lista: {plata(modelo.precio)}{" "}
-              <button type="button" onClick={() => setValor(modelo.precio!)} className="font-semibold text-azul-texto">Usar este precio</button>
+              Precio de lista: {plata(version.precio)}{" "}
+              <button type="button" onClick={() => setValor(version.precio!)} className="font-semibold text-azul-texto">Usar este precio</button>
             </p>
-          ) : modelo ? (
-            <p className="mt-1 text-[13px] text-texto-2">Este modelo no tiene precio de lista cargado.</p>
+          ) : version ? (
+            <p className="mt-1 text-[13px] text-texto-2">Esta versión no tiene precio de lista cargado.</p>
           ) : null}
           {err.valorVehiculo && <p className="mt-1 text-sm text-senal">{err.valorVehiculo}</p>}
         </div>

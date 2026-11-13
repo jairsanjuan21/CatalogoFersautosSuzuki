@@ -9,7 +9,7 @@ import type { Solicitud } from "@/validacion/solicitud";
 
 export class ErrorSolicitud extends Error {
   constructor(
-    public codigo: "CLAUSULA_DESACTUALIZADA" | "IMAGEN_INVALIDA" | "FIRMA_INVALIDA",
+    public codigo: "CLAUSULA_DESACTUALIZADA" | "IMAGEN_INVALIDA" | "FIRMA_INVALIDA" | "PLAZO_NO_DISPONIBLE",
     mensaje: string,
   ) {
     super(mensaje);
@@ -78,6 +78,12 @@ export async function crearSolicitud(entrada: NuevaSolicitud) {
       "CLAUSULA_DESACTUALIZADA",
       "El texto de la autorización cambió. Recarga la página y vuelve a aceptarlo.",
     );
+  }
+
+  // El plazo debe estar entre los que Natalia ofrece hoy (se configuran en el panel)
+  const [conf] = await db.select({ plazos: t.configuracion.plazosMeses }).from(t.configuracion).limit(1);
+  if (conf && !conf.plazos.includes(datos.vehiculo.plazoMeses)) {
+    throw new ErrorSolicitud("PLAZO_NO_DISPONIBLE", "Ese plazo ya no está disponible. Recarga la página y elige otro.");
   }
 
   // 2. Procesar archivos antes de tocar la base de datos (si una foto está mala, no queda nada a medias)

@@ -5,6 +5,8 @@ import { exigirRol } from "@/lib/sesion";
 import { atributosFoto } from "@/modulos/fotos/fotos";
 import { modeloAdmin } from "@/modulos/admin/catalogo";
 import { FormularioModelo, GestorFotos } from "./clientes";
+import { GestorVersiones } from "./Versiones";
+import { ZonaPeligro } from "./ZonaPeligro";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -30,7 +32,9 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
   return (
     <>
       <div className="mt-1 flex flex-wrap items-end justify-between gap-3">
-        <h1 className="font-display text-[32px] leading-tight font-bold">{m.linea}</h1>
+        <h1 className="font-display text-[32px] leading-tight font-bold">
+          {m.linea} {m.archivado && <span className="ml-1 rounded bg-linea px-2 py-0.5 align-middle font-sans text-sm font-semibold text-texto-2">Archivado</span>}
+        </h1>
         {m.visible && (
           <a href={`/modelo/${m.slug}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-azul-texto">
             Ver en el catálogo ↗
@@ -39,10 +43,14 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
       </div>
       <h2 className="font-display mt-6 mb-2.5 text-[22px] font-semibold">Fotos</h2>
       <GestorFotos modeloId={m.id} maximo={8} fotos={m.fotos.map((f) => ({ id: f.id, ...atributosFoto(f.claveArchivo) }))} />
+      <h2 className="font-display mt-7 mb-2.5 text-[22px] font-semibold">Versiones</h2>
+      <GestorVersiones modeloId={m.id} versiones={m.versiones} />
       <h2 className="font-display mt-7 mb-2.5 text-[22px] font-semibold">Datos del modelo</h2>
       {/* Sin "key" a propósito: con una key que cambie al guardar, React desmontaría
           el formulario y se perdería el mensaje de "Modelo guardado". */}
       <FormularioModelo m={m} />
+      <h2 className="font-display mt-9 mb-2.5 text-[22px] font-semibold text-senal">Archivar o eliminar</h2>
+      <ZonaPeligro modeloId={m.id} linea={m.linea} archivado={m.archivado} solicitudes={m.solicitudes} />
     </>
   );
 }
