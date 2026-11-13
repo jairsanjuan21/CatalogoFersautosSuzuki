@@ -121,6 +121,19 @@ Cada modelo tiene un **precio base** fijo (el "Desde" del catálogo) y varias **
   precio base no se vence.
 - En cada solicitud, Natalia elige **modelo y versión**; el PDF muestra ambos en el campo "Línea".
 
+## Ventas y comisiones
+
+**Panel → Ventas** muestra, por mes, los vehículos vendidos, el total y la **comisión estimada**,
+con un gráfico de los últimos 6 meses. Las ventas vienen de dos fuentes:
+
+- **Solicitudes entregadas:** se cuentan solas, en la fecha en que Natalia las marcó como entregadas.
+- **Ventas manuales:** las que no pasaron por el formulario; Natalia las registra en la misma pantalla.
+
+La comisión se configura en **Admin → Configuración**: el valor por cada millón (5.000 por defecto,
+es decir 0,5 %) y la forma de contar (proporcional o solo millones completos). Se calcula con la
+configuración vigente, así que si cambia, los meses anteriores también se recalculan: es una
+estimación, no la liquidación de Fersautos. La regla está en `src/modulos/ventas/comision.ts`.
+
 ## Lectura de precios con IA
 
 En **Panel → Precios**, Natalia sube el PDF de precios que le llega y el sistema le muestra una

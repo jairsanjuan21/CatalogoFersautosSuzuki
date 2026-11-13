@@ -86,6 +86,26 @@ async function datosDeEjemplo() {
     await tx.insert(t.precios).values([{ versionId: swiftGl.id, precioLista: 77_990_000, vigenteDesde: haceDias(20) }, ...precios]);
     const versionDe = (slug: string, tr: "mecanica" | "automatica") => versiones.find((x) => x.modeloId === id(slug) && x.transmision === tr)?.id;
 
+    // Ventas manuales repartidas en los últimos meses, para que el gráfico de comisiones tenga forma
+    const dia = (dias: number) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(haceDias(dias));
+    const ejemplos: [string, "mecanica" | "automatica", number, number, "contado" | "credito", string | null][] = [
+      ["swift", "mecanica", 78_990_000, 3, "contado", "Carlos R."],
+      ["dzire", "automatica", 88_990_000, 12, "credito", null],
+      ["s-presso", "mecanica", 60_490_000, 38, "credito", "Familia Peña"],
+      ["swift", "automatica", 87_490_000, 45, "contado", null],
+      ["vitara", "automatica", 119_990_000, 70, "credito", "Andrea M."],
+      ["ignis", "mecanica", 75_490_000, 104, "contado", null],
+      ["dzire", "mecanica", 79_990_000, 131, "credito", null],
+    ];
+    await tx.insert(t.ventas).values(
+      ejemplos.map(([slug, tr, valor, dias, formaPago, cliente]) => {
+        const m = MODELOS.find((x) => x.slug === slug)!;
+        const v = versiones.find((x) => x.modeloId === id(slug) && x.transmision === tr);
+        const etiqueta = m.versiones.find((x) => x[1] === tr)?.[0];
+        return { fecha: dia(dias), modeloId: id(slug), versionId: v?.id ?? null, vehiculo: `${m.linea} ${etiqueta} ${tr === "mecanica" ? "mecánica" : "automática"}`, valor, formaPago, cliente };
+      }),
+    );
+
     await tx.insert(t.promociones).values([
       { modeloId: id("swift"), descripcion: "Bono de descuento por compra a crédito", valorBono: 3_000_000, hasta: enDias(12) },
       { modeloId: id("vitara"), descripcion: "Kit de accesorios y primer mantenimiento", hasta: enDias(3) },
@@ -171,7 +191,7 @@ async function datosDeEjemplo() {
     ]);
   });
 
-  console.log("✔ Datos de ejemplo: precios por versión, 2 promociones y 3 solicitudes");
+  console.log("✔ Datos de ejemplo: precios por versión, 2 promociones, 3 solicitudes y 7 ventas");
 }
 
 async function main() {

@@ -174,7 +174,9 @@ export async function cambiarEstado(_previo: Resultado, formulario: FormData): P
         estado: d.estado,
         financiera: d.financiera,
         // Al cerrarse empieza a contar la retención de documentos; si se reabre, se reinicia
-        cerradaEn: cerrada ? (actual.cerradaEn ?? new Date()) : null,
+        // Fecha de entrada al estado cerrado ACTUAL: si pasa de "negada" a "entregada",
+        // la venta debe quedar en la fecha de la entrega, no en la de la negación
+        cerradaEn: cerrada ? (actual.estado === d.estado ? actual.cerradaEn : new Date()) : null,
       })
       .where(eq(t.solicitudes.id, d.solicitudId));
     await tx.insert(t.historial).values({

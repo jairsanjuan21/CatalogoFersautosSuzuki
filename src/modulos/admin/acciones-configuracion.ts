@@ -29,11 +29,21 @@ const esquema = z.object({
     .transform((v) => [...new Set(v)].sort((a, b) => a - b)),
   diasVigenciaPrecio: z.coerce.number().refine((v) => [3, 5, 7, 10, 15].includes(v)),
   diasRetencionDocumentos: z.coerce.number().refine((v) => [30, 60, 90, 180].includes(v)),
+  comisionPorMillon: z.coerce
+    .number({ error: "Escribe un número." })
+    .int({ error: "Sin decimales." })
+    .min(100, { error: "Mínimo $ 100 por millón." })
+    .max(100_000, { error: "Máximo $ 100.000 por millón (10 %)." }),
+  comisionMetodo: z.enum(["proporcional", "millones_completos"]),
 });
 
 export async function guardarConfiguracion(_previo: ResultadoAdmin, formulario: FormData): Promise<ResultadoAdmin> {
   const { usuarioId, ip } = await exigirAdmin();
-  const r = esquema.safeParse({ ...Object.fromEntries(formulario), plazosMeses: formulario.getAll("plazosMeses") });
+  const r = esquema.safeParse({
+    ...Object.fromEntries(formulario),
+    plazosMeses: formulario.getAll("plazosMeses"),
+    comisionPorMillon: String(formulario.get("comisionPorMillon") ?? "").replace(/\D/g, ""),
+  });
   if (!r.success) return { ok: false, errores: erroresPorCampo(r.error), mensaje: "Revisa los campos marcados." };
 
   const [antes] = await db.select().from(t.configuracion).where(eq(t.configuracion.id, 1));

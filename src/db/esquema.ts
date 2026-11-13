@@ -95,6 +95,8 @@ export const tipoArchivo = pgEnum("tipo_archivo", [
 ]);
 export const origenPrecio = pgEnum("origen_precio", ["manual", "pdf_ia"]);
 export const transmision = pgEnum("transmision", ["mecanica", "automatica"]);
+export const metodoComision = pgEnum("metodo_comision", ["proporcional", "millones_completos"]);
+export const formaPago = pgEnum("forma_pago", ["contado", "credito"]);
 export const actor = pgEnum("actor", ["cliente", "asesora", "admin", "sistema"]);
 export const tipoPeticion = pgEnum("tipo_peticion", ["consulta", "correccion", "eliminacion", "revocatoria"]);
 export const estadoPeticion = pgEnum("estado_peticion", ["pendiente", "atendida", "rechazada"]);
@@ -196,6 +198,9 @@ export const configuracion = pgTable(
     planFinanciacion: text().notNull().default("Tradicional"),
     plazosMeses: integer().array().notNull().default(sql`'{12,24,36,48,60,72,84}'`),
     diasVigenciaPrecio: smallint().notNull().default(7),
+    // Comisión de Natalia: X pesos por cada millón del valor del vehículo
+    comisionPorMillon: integer().notNull().default(5000),
+    comisionMetodo: metodoComision().notNull().default("proporcional"),
     diasRetencionDocumentos: smallint().notNull().default(90),
     actualizadoEn: actualizadoEn(),
   },
@@ -580,6 +585,35 @@ export const enviosTelegram = pgTable(
     index("envios_telegram_pendientes")
       .on(t.borrarDespuesDe)
       .where(sql`${t.borradoEn} is null`),
+  ],
+);
+
+/* ============================================================================
+   VENTAS MANUALES
+   Las ventas que NO pasaron por el formulario (cliente que llegó a la sede, de
+   contado...). Las del formulario se cuentan desde las solicitudes entregadas.
+   "vehiculo" guarda el nombre como texto: si el modelo se borra o se renombra,
+   la venta histórica sigue diciendo qué se vendió.
+   ========================================================================== */
+
+export const ventas = pgTable(
+  "ventas",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    fecha: date({ mode: "string" }).notNull(),
+    modeloId: uuid().references(() => modelos.id, { onDelete: "set null" }),
+    versionId: uuid().references(() => versiones.id, { onDelete: "set null" }),
+    vehiculo: text().notNull(), // "Swift GL 1.2 mecánica"
+    valor: pesos().notNull(),
+    formaPago: formaPago(),
+    cliente: text(), // opcional: solo el nombre, para que Natalia la reconozca
+    nota: text(),
+    usuarioId: text(),
+    creadoEn: creadoEn(),
+  },
+  (t) => [
+    index("ventas_fecha").on(t.fecha),
+    check("ventas_valor", sql`${t.valor} between 1000000 and 2000000000`),
   ],
 );
 

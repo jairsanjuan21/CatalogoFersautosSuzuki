@@ -10,14 +10,17 @@ const ICONOS = {
   precios: "M3 12V4h8l10 10-8 8zM7.5 8.5h.01",
   compartir: "M6 12m-2.5 0a2.5 2.5 0 105 0 2.5 2.5 0 10-5 0M18 6m-2.5 0a2.5 2.5 0 105 0 2.5 2.5 0 10-5 0M18 18m-2.5 0a2.5 2.5 0 105 0 2.5 2.5 0 10-5 0M8.2 10.8l7.6-3.6M8.2 13.2l7.6 3.6",
   perfil: "M12 8m-4 0a4 4 0 108 0 4 4 0 10-8 0M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6",
+  ventas: "M4 20V10M10 20V4M16 20v-7M22 20H2",
 };
 
 const ENLACES = [
   { href: "/panel", texto: "Inicio", icono: ICONOS.inicio },
   { href: "/panel/solicitudes", texto: "Solicitudes", icono: ICONOS.solicitudes },
+  { href: "/panel/ventas", texto: "Ventas", icono: ICONOS.ventas },
   { href: "/panel/precios", texto: "Precios", icono: ICONOS.precios },
   { href: "/panel/compartir", texto: "Compartir", icono: ICONOS.compartir },
-  { href: "/panel/perfil", texto: "Perfil", icono: ICONOS.perfil },
+  // En el celular, Perfil va en la barra superior para que la inferior no tenga 6 botones
+  { href: "/panel/perfil", texto: "Perfil", icono: ICONOS.perfil, soloEscritorio: true },
 ];
 
 /** La barra en sí. Sin ruta (mientras carga) no resalta ninguna sección. */
@@ -37,7 +40,7 @@ export function BarraNavegacion({ ruta }: { ruta: string | null }) {
           key={e.href}
           href={e.href}
           aria-current={activo(e.href) ? "page" : undefined}
-          className="flex flex-1 flex-col items-center gap-0.5 px-0.5 pt-2 pb-2.5 text-xs text-texto-2 aria-[current=page]:font-semibold aria-[current=page]:text-azul-texto lg:flex-none lg:flex-row lg:gap-3 lg:rounded-lg lg:px-3 lg:py-2.5 lg:text-base lg:aria-[current=page]:bg-cielo"
+          className={`${"soloEscritorio" in e ? "hidden lg:flex" : "flex"} flex-1 flex-col items-center gap-0.5 px-0.5 pt-2 pb-2.5 text-xs text-texto-2 aria-[current=page]:font-semibold aria-[current=page]:text-azul-texto lg:flex-none lg:flex-row lg:gap-3 lg:rounded-lg lg:px-3 lg:py-2.5 lg:text-base lg:aria-[current=page]:bg-cielo`}
         >
           <svg viewBox="0 0 24 24" aria-hidden className="size-[22px] fill-none stroke-current stroke-[1.8] [stroke-linecap:round] [stroke-linejoin:round]">
             <path d={e.icono} />

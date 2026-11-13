@@ -3,6 +3,8 @@
 import { startTransition, useActionState, useState, type FormEvent } from "react";
 import { crearVersionClausula, guardarConfiguracion } from "@/modulos/admin/acciones-configuracion";
 import { useFormularioAccion } from "@/lib/usar-formulario";
+import { plata } from "@/lib/formato";
+import { calcularComision, porcentaje } from "@/modulos/ventas/comision";
 import type { ResultadoAdmin } from "@/modulos/admin/acciones-catalogo";
 
 const claseInput =
@@ -30,6 +32,44 @@ export interface Config {
   plazosMeses: number[];
   diasVigenciaPrecio: number;
   diasRetencionDocumentos: number;
+  comisionPorMillon: number;
+  comisionMetodo: "proporcional" | "millones_completos";
+}
+
+/** Comisión con ejemplo en vivo: así se ve el efecto de cada opción antes de guardar. */
+function EditorComision({ porMillon: inicialPm, metodo: inicialM, error }: { porMillon: number; metodo: Config["comisionMetodo"]; error?: string }) {
+  const [porMillon, setPorMillon] = useState<number | undefined>(inicialPm);
+  const [metodo, setMetodo] = useState(inicialM);
+  const ejemplo = 78_990_000;
+  return (
+    <div className="grid gap-3.5 rounded-xl border border-linea bg-superficie p-4 sm:grid-cols-2">
+      <Campo id="comisionPorMillon" etiqueta="Comisión por cada millón" error={error} ayuda={porMillon ? `Equivale al ${porcentaje(porMillon)} del valor del vehículo.` : undefined}>
+        <input type="hidden" name="comisionPorMillon" value={porMillon ?? ""} />
+        <input
+          id="comisionPorMillon"
+          inputMode="numeric"
+          value={plata(porMillon)}
+          onChange={(e) => { const d = e.target.value.replace(/\D/g, "").slice(0, 6); setPorMillon(d ? Number(d) : undefined); }}
+          className={`${claseInput} text-right`}
+          aria-invalid={!!error}
+        />
+      </Campo>
+      <fieldset>
+        <legend className="mb-1 text-sm font-semibold">Cómo se cuenta</legend>
+        <label className="flex min-h-10 items-center gap-2 text-[15px]">
+          <input type="radio" name="comisionMetodo" value="proporcional" checked={metodo === "proporcional"} onChange={() => setMetodo("proporcional")} className="size-4 accent-azul" />
+          Proporcional (cuenta también la fracción de millón)
+        </label>
+        <label className="flex min-h-10 items-center gap-2 text-[15px]">
+          <input type="radio" name="comisionMetodo" value="millones_completos" checked={metodo === "millones_completos"} onChange={() => setMetodo("millones_completos")} className="size-4 accent-azul" />
+          Solo millones completos
+        </label>
+      </fieldset>
+      <p className="rounded-lg bg-cielo px-3 py-2.5 text-[15px] sm:col-span-2">
+        Ejemplo: un carro de <b>{plata(ejemplo)}</b> deja una comisión de <b>{plata(calcularComision(ejemplo, porMillon ?? 0, metodo))}</b>.
+      </p>
+    </div>
+  );
 }
 
 /** Lista editable de plazos: se agregan y se quitan; viajan como campos ocultos "plazosMeses". */
@@ -145,6 +185,9 @@ export function FormularioConfiguracion({ c }: { c: Config }) {
           </select>
         </Campo>
       </div>
+
+      <h2 className="font-display mt-7 mb-2.5 text-[22px] font-semibold">Comisión de Natalia</h2>
+      <EditorComision porMillon={c.comisionPorMillon} metodo={c.comisionMetodo} error={err.comisionPorMillon} />
 
       <button disabled={guardando} className="mt-4 min-h-11 rounded-lg bg-azul px-4 font-semibold text-white hover:bg-azul-hover disabled:opacity-60">
         {guardando ? "Guardando…" : "Guardar configuración"}

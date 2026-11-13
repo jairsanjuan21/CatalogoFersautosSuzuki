@@ -3,7 +3,8 @@ import Link from "next/link";
 import { exigirRol } from "@/lib/sesion";
 import { fechaCorta, haceCuanto, ORIGENES } from "@/lib/etiquetas";
 import { resumenPanel } from "@/modulos/solicitudes/panel";
-import { nombreVersion } from "@/lib/formato";
+import { nombreVersion, plata } from "@/lib/formato";
+import { mesActual, nombreMes, resumenVentas } from "@/modulos/ventas/consultas";
 import { Cargando, ItemSolicitud, Lista } from "./componentes";
 
 export default function Inicio() {
@@ -21,7 +22,7 @@ function saludo() {
 
 async function Contenido() {
   const usuario = await exigirRol("asesora");
-  const r = await resumenPanel();
+  const [r, ventas] = await Promise.all([resumenPanel(), resumenVentas(mesActual())]);
   const hoy = new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", weekday: "long", day: "numeric", month: "long" }).format(new Date());
 
   const kpis = [
@@ -53,6 +54,19 @@ async function Contenido() {
           </Link>
         ))}
       </div>
+
+      <Link href="/panel/ventas" className="mt-2.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-xl border border-azul bg-cielo px-4 py-3 hover:border-azul-hover">
+        <span>
+          <span className="block text-sm text-azul-texto first-letter:uppercase">{nombreMes(ventas.mes)}</span>
+          <b className="font-display text-xl">
+            {ventas.totales.cantidad} {ventas.totales.cantidad === 1 ? "vehículo vendido" : "vehículos vendidos"}
+          </b>
+        </span>
+        <span className="text-right">
+          <span className="block text-sm text-texto-2">Comisión estimada</span>
+          <b className="font-display text-xl">{plata(ventas.totales.comision)}</b>
+        </span>
+      </Link>
 
       {r.preciosViejos.length > 0 && (
         <p className="mt-3 rounded-lg bg-ambar-fondo px-3 py-2.5 text-[15px] text-ambar">
