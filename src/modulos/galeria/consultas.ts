@@ -27,3 +27,13 @@ export function fotosPublicas(seccion: Seccion, limite?: number) {
     .orderBy(desc(t.fotosGaleria.creadoEn), asc(t.fotosGaleria.id));
   return limite ? consulta.limit(limite) : consulta;
 }
+
+/** Las más recientes de las dos secciones mezcladas, para la franja del inicio */
+export function fotosRecientes(limite: number) {
+  return db
+    .select({ id: t.fotosGaleria.id, clave: t.fotosGaleria.claveArchivo, pie: t.fotosGaleria.pie, seccion: t.fotosGaleria.seccion })
+    .from(t.fotosGaleria)
+    .where(eq(t.fotosGaleria.visible, true))
+    .orderBy(desc(t.fotosGaleria.creadoEn), asc(t.fotosGaleria.id))
+    .limit(limite);
+}

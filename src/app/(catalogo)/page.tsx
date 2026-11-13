@@ -6,7 +6,8 @@ import { datosAsesora, modelosCatalogo } from "@/modulos/catalogo/consultas";
 import { atributosFoto } from "@/modulos/fotos/fotos";
 import { Modelos, type TarjetaModelo } from "./Modelos";
 import { FotosEntregas } from "./FotosEntregas";
-import { fotosPublicas, SECCIONES } from "@/modulos/galeria/consultas";
+import { fotosPublicas, fotosRecientes, SECCIONES } from "@/modulos/galeria/consultas";
+import { FranjaEntregas } from "./FranjaEntregas";
 import { textoPromocion, TIPO_TEXTO } from "./textos";
 
 export const metadata: Metadata = {
@@ -36,7 +37,13 @@ const CARRO_VIA = (
 
 async function Contenido() {
   await connection();
-  const [asesora, modelos, familia, clientes] = await Promise.all([datosAsesora(), modelosCatalogo(), fotosPublicas("familia", 6), fotosPublicas("clientes", 6)]);
+  const [asesora, modelos, familia, clientes, recientes] = await Promise.all([
+    datosAsesora(),
+    modelosCatalogo(),
+    fotosPublicas("familia", 6),
+    fotosPublicas("clientes", 6),
+    fotosRecientes(12),
+  ]);
   if (!asesora) return <p className="py-10 text-senal">El catálogo aún no está configurado.</p>;
 
   const tarjetas: TarjetaModelo[] = modelos.map((m) => ({
@@ -91,6 +98,8 @@ async function Contenido() {
           </p>
         </aside>
       </section>
+
+      <FranjaEntregas nombre={asesora.primerNombre} fotos={recientes.map((f) => ({ id: f.id, pie: f.pie, ...atributosFoto(f.clave) }))} />
 
       <div aria-hidden className="relative mt-8 h-[34px] overflow-hidden rounded-full bg-asfalto">
         <div className="absolute inset-x-4 top-4 h-0.5 bg-[repeating-linear-gradient(90deg,var(--marca-via)_0_16px,transparent_16px_30px)] opacity-75" />
