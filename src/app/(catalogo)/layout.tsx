@@ -44,6 +44,11 @@ async function Pie() {
             sujeto a la aprobación de la entidad financiera.
           </p>
         </div>
+        <div className="mx-auto mt-4 flex max-w-6xl justify-between gap-3 px-5 text-[13px]">
+          <Link href="/galeria" className="hover:text-texto">Familia Suzuki</Link>
+          {/* Discreto a propósito: la seguridad está en el inicio de sesión, no en esconder el enlace */}
+          <Link href="/ingresar" className="hover:text-texto">Acceso asesora</Link>
+        </div>
       </footer>
       {a.whatsapp && (
         <a

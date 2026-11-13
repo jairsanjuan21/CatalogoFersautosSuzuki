@@ -24,3 +24,19 @@ export async function exigirAdmin() {
   const ip = ipDeLaPeticion(h);
   return { usuarioId: sesion.user.id, ip: ip === "desconocida" ? null : ip };
 }
+
+/**
+ * El catálogo lo administran las dos cuentas: Natalia (es su vitrina) y el admin (soporte).
+ * Devuelve también el "actor" para que la auditoría registre quién hizo cada cambio.
+ */
+export async function exigirGestorCatalogo() {
+  const h = await headers();
+  const sesion = await auth.api.getSession({ headers: h });
+  const rol = sesion?.user.role;
+  if (!sesion || (rol !== "asesora" && rol !== "admin")) throw new Error("No autorizado");
+  const ip = ipDeLaPeticion(h);
+  return { usuarioId: sesion.user.id, ip: ip === "desconocida" ? null : ip, actor: rol === "admin" ? ("admin" as const) : ("asesora" as const) };
+}
+
+/** A dónde vuelve cada rol después de crear o eliminar un modelo */
+export const baseCatalogo = (actor: "admin" | "asesora") => (actor === "admin" ? "/admin/catalogo" : "/panel/catalogo");

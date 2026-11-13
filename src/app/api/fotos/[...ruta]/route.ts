@@ -6,7 +6,7 @@ import { almacenamiento } from "@/lib/almacenamiento";
  * imposible pedir por aquí una cédula (que vive en "solicitudes/...") o
  * escapar de la carpeta con "../".
  */
-const PERMITIDA = /^publico\/(modelos\/[0-9a-f-]{36}|asesora)\/[0-9a-f-]{36}-(600|1200)\.webp$/;
+const PERMITIDA = /^publico\/(modelos\/[0-9a-f-]{36}|asesora|galeria)\/[0-9a-f-]{36}-(600|1200)\.webp$/;
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ ruta: string[] }> }) {
   const clave = (await params).ruta.join("/");

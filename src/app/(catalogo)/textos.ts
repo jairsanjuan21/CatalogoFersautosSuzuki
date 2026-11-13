@@ -1,12 +1,7 @@
 import type { Carroceria } from "@/componentes/Carro";
+import { TIPO_VEHICULO } from "@/lib/formato";
 
-export const TIPO_TEXTO: Record<Carroceria, string> = {
-  hatchback: "Hatchback",
-  sedan: "Sedán",
-  suv: "SUV",
-  todoterreno: "4x4",
-  familiar: "Familiar 7 puestos",
-};
+export const TIPO_TEXTO: Record<Carroceria, string> = TIPO_VEHICULO;
 
 export const fechaLarga = (d: Date) =>
   new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", day: "numeric", month: "long" }).format(d);

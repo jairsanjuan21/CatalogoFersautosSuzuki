@@ -77,7 +77,7 @@ export function GestorVersiones({ modeloId, versiones }: { modeloId: string; ver
   return (
     <div className="rounded-xl border border-linea bg-superficie p-4">
       <p className="text-[15px] text-texto-2">
-        Cada versión tiene su propio precio, que Natalia actualiza en su panel. El precio base (“Desde”) también lo maneja ella.
+        Cada versión tiene su propio precio, que se actualiza en la sección Precios. El precio base (“Desde”) también se maneja allí.
       </p>
       {versiones.length === 0 && <p className="mt-3 font-semibold text-ambar">Este modelo no tiene versiones: Natalia no puede cargarle precios.</p>}
       <ul className="mt-2 divide-y divide-linea">

@@ -16,6 +16,7 @@ import {
   pasoVehiculo,
 } from "@/validacion/solicitud";
 import { escribir, leer, nombreDeAsesora, plata } from "@/lib/formato";
+import { resolverOrigen } from "@/lib/origen";
 import {
   Chips,
   Digitos,
@@ -165,7 +166,7 @@ const SI_NO: [boolean, string][] = [
    COMPONENTE PRINCIPAL
    ========================================================================== */
 
-export function FormularioCredito({ config }: { config: ConfigFormulario }) {
+export function FormularioCredito({ config, origenRecordado }: { config: ConfigFormulario; origenRecordado: string | null }) {
   const params = useSearchParams();
   const [paso, setPaso] = useState(-1); // -1 bienvenida, PASOS.length = enviada
   const [estado, setEstado] = useState<Estado>({
@@ -285,7 +286,7 @@ export function FormularioCredito({ config }: { config: ConfigFormulario }) {
 
     const cuerpo = new FormData();
     cuerpo.set("datos", JSON.stringify(solicitud));
-    cuerpo.set("origen", params.get("origen") ?? "directo");
+    cuerpo.set("origen", resolverOrigen(params.get("origen"), origenRecordado));
     cuerpo.set("sitio_web", trampa.current?.value ?? "");
     cuerpo.set("cedulaFrente", estado.fotos.frente!.blob, "cedula-frente.jpg");
     cuerpo.set("cedulaReves", estado.fotos.reves!.blob, "cedula-reves.jpg");

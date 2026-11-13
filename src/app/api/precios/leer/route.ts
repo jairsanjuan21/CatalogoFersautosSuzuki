@@ -6,9 +6,10 @@ import { auth } from "@/lib/auth";
 import { ipDeLaPeticion, permitir } from "@/lib/limite";
 import { ErrorLectura, leerPreciosDePdf } from "@/modulos/precios/lector-ia";
 import { nombreVersion } from "@/lib/formato";
+import { TIPO_VEHICULO } from "@/lib/formato";
 
 const ACCION = "Leyó una lista de precios con IA";
-const TIPOS: Record<string, string> = { hatchback: "Hatchback", sedan: "Sedán", suv: "SUV", todoterreno: "4x4", familiar: "Familiar 7 puestos" };
+const TIPOS: Record<string, string> = TIPO_VEHICULO;
 const respuesta = (status: number, cuerpo: object) => NextResponse.json(cuerpo, { status });
 
 /** POST /api/precios/leer  (solo la asesora) — multipart con el campo "pdf" */

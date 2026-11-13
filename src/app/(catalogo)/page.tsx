@@ -5,6 +5,8 @@ import { connection } from "next/server";
 import { datosAsesora, modelosCatalogo } from "@/modulos/catalogo/consultas";
 import { atributosFoto } from "@/modulos/fotos/fotos";
 import { Modelos, type TarjetaModelo } from "./Modelos";
+import { FotosEntregas } from "./FotosEntregas";
+import { fotosPublicas, SECCIONES } from "@/modulos/galeria/consultas";
 import { textoPromocion, TIPO_TEXTO } from "./textos";
 
 export const metadata: Metadata = {
@@ -34,7 +36,7 @@ const CARRO_VIA = (
 
 async function Contenido() {
   await connection();
-  const [asesora, modelos] = await Promise.all([datosAsesora(), modelosCatalogo()]);
+  const [asesora, modelos, familia, clientes] = await Promise.all([datosAsesora(), modelosCatalogo(), fotosPublicas("familia", 6), fotosPublicas("clientes", 6)]);
   if (!asesora) return <p className="py-10 text-senal">El catálogo aún no está configurado.</p>;
 
   const tarjetas: TarjetaModelo[] = modelos.map((m) => ({
@@ -100,6 +102,9 @@ async function Contenido() {
         <p className="mt-1.5 text-texto-2">Precios actualizados por {asesora.primerNombre}. Si no ves el precio, escríbeme y te cotizo al día.</p>
       </div>
       <Modelos modelos={tarjetas} />
+
+      <FotosEntregas id="familia" {...SECCIONES.familia} fotos={familia} verTodas />
+      <FotosEntregas id="clientes" {...SECCIONES.clientes} fotos={clientes} verTodas />
 
       <h2 className="font-display mt-12 text-4xl leading-none font-bold">Así funciona el crédito</h2>
       <p className="mt-1.5 text-texto-2">Sin filas y sin papeleo en el concesionario.</p>

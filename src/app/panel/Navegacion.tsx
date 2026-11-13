@@ -17,7 +17,8 @@ const ENLACES = [
   { href: "/panel", texto: "Inicio", icono: ICONOS.inicio },
   { href: "/panel/solicitudes", texto: "Solicitudes", icono: ICONOS.solicitudes },
   { href: "/panel/ventas", texto: "Ventas", icono: ICONOS.ventas },
-  { href: "/panel/precios", texto: "Precios", icono: ICONOS.precios },
+  // "Catálogo" agrupa Precios, Modelos y Galería (ver SubnavCatalogo); abre en Precios, lo de todos los días
+  { href: "/panel/precios", texto: "Catálogo", icono: ICONOS.precios, secciones: ["/panel/precios", "/panel/catalogo", "/panel/galeria"] },
   { href: "/panel/compartir", texto: "Compartir", icono: ICONOS.compartir },
   // En el celular, Perfil va en la barra superior para que la inferior no tenga 6 botones
   { href: "/panel/perfil", texto: "Perfil", icono: ICONOS.perfil, soloEscritorio: true },
@@ -25,7 +26,8 @@ const ENLACES = [
 
 /** La barra en sí. Sin ruta (mientras carga) no resalta ninguna sección. */
 export function BarraNavegacion({ ruta }: { ruta: string | null }) {
-  const activo = (href: string) => (ruta === null ? false : href === "/panel" ? ruta === "/panel" : ruta.startsWith(href));
+  const activo = (e: (typeof ENLACES)[number]) =>
+    ruta === null ? false : e.href === "/panel" ? ruta === "/panel" : ("secciones" in e && e.secciones ? e.secciones : [e.href]).some((h) => ruta.startsWith(h));
   return (
     <nav
       aria-label="Secciones del panel"
@@ -39,7 +41,7 @@ export function BarraNavegacion({ ruta }: { ruta: string | null }) {
         <Link
           key={e.href}
           href={e.href}
-          aria-current={activo(e.href) ? "page" : undefined}
+          aria-current={activo(e) ? "page" : undefined}
           className={`${"soloEscritorio" in e ? "hidden lg:flex" : "flex"} flex-1 flex-col items-center gap-0.5 px-0.5 pt-2 pb-2.5 text-xs text-texto-2 aria-[current=page]:font-semibold aria-[current=page]:text-azul-texto lg:flex-none lg:flex-row lg:gap-3 lg:rounded-lg lg:px-3 lg:py-2.5 lg:text-base lg:aria-[current=page]:bg-cielo`}
         >
           <svg viewBox="0 0 24 24" aria-hidden className="size-[22px] fill-none stroke-current stroke-[1.8] [stroke-linecap:round] [stroke-linejoin:round]">

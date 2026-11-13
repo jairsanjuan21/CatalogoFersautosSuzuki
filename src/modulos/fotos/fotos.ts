@@ -15,7 +15,7 @@ export type Tamano = (typeof TAMANOS)[number];
 
 export class ErrorFoto extends Error {}
 
-export async function guardarFotoPublica(original: Buffer, carpeta: "modelos" | "asesora", subcarpeta?: string) {
+export async function guardarFotoPublica(original: Buffer, carpeta: "modelos" | "asesora" | "galeria", subcarpeta?: string) {
   let meta: Metadata;
   try {
     meta = await sharp(original, { failOn: "error" }).metadata();

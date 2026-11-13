@@ -121,6 +121,33 @@ Cada modelo tiene un **precio base** fijo (el "Desde" del catálogo) y varias **
   precio base no se vence.
 - En cada solicitud, Natalia elige **modelo y versión**; el PDF muestra ambos en el campo "Línea".
 
+## Catálogo: quién lo administra
+
+Natalia y el administrador administran el catálogo con **las mismas pantallas**
+(`src/componentes/catalogo/`): Natalia en **Panel → Catálogo** (pestañas Precios, Modelos y Galería)
+y el admin en **Admin → Catálogo**. Las acciones aceptan ambos roles y la auditoría registra quién
+hizo cada cambio.
+
+- **Video:** cada modelo puede tener un video de YouTube (se pega el enlace de "Compartir"; también
+  sirven los Shorts). La ficha muestra solo la miniatura y carga el reproductor al tocarla, desde
+  `youtube-nocookie.com`.
+- **Galería de entregas:** dos secciones, *Familia Suzuki* y *Clientes felices*. Cada foto exige
+  confirmar que las personas autorizaron publicarla y, si hay menores, que sus padres o acudientes
+  también; la base de datos rechaza una foto sin esa constancia. Si alguien retira su autorización,
+  basta con borrar la foto.
+
+## Compartir: de dónde llegan los clientes
+
+Cada red tiene su enlace con `?origen=instagram` (o `facebook`, `whatsapp`, `estados`, `qr`). Al entrar
+por uno a **cualquier** página pública, el proxy (`src/proxy.ts`) guarda la etiqueta en una cookie
+`httpOnly` durante 30 días, y el formulario la usa aunque la persona haya pasado antes por el
+catálogo o la ficha de un modelo. Si vuelve por otro enlace, cuenta el más reciente. La regla está en
+`src/lib/origen.ts`.
+
+En **Panel → Compartir**, Natalia elige a dónde lleva el enlace (catálogo, formulario o un modelo) y
+tiene, por cada red, el mensaje listo, el botón para compartir y sus resultados. El código QR se
+genera con la dirección de `BETTER_AUTH_URL`: **no imprimas QR hasta tener el dominio definitivo.**
+
 ## Ventas y comisiones
 
 **Panel → Ventas** muestra, por mes, los vehículos vendidos, el total y la **comisión estimada**,

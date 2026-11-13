@@ -6,13 +6,16 @@ import { preciosParaPanel, promocionesParaPanel } from "@/modulos/precios/consul
 import { Cargando, Titulo } from "../componentes";
 import { FormularioPromocion, QuitarPromocion, TablaPrecios, type ModeloPrecios } from "./clientes";
 import { LectorPdf } from "./LectorPdf";
+import { SubnavCatalogo } from "../SubnavCatalogo";
+import { TIPO_VEHICULO } from "@/lib/formato";
 
-const TIPOS: Record<string, string> = { hatchback: "Hatchback", sedan: "Sedán", suv: "SUV", todoterreno: "4x4", familiar: "Familiar 7 puestos" };
+const TIPOS: Record<string, string> = TIPO_VEHICULO;
 
 export default function Precios() {
   return (
     <>
-      <Titulo sub="Lo que guardes aquí se muestra en el catálogo y se precarga en tus solicitudes.">Precios y promociones</Titulo>
+      <Titulo sub="Lo que guardes aquí se muestra en el catálogo y se precarga en tus solicitudes.">Catálogo</Titulo>
+      <SubnavCatalogo activa="Precios" />
       <Suspense fallback={<Cargando />}>
         <Contenido />
       </Suspense>

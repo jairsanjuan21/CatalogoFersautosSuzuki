@@ -3,17 +3,11 @@
 import { startTransition, useActionState, useState, useTransition, type FormEvent } from "react";
 import { borrarFotoModelo, guardarModelo, moverFoto, subirFotoModelo, type ResultadoAdmin } from "@/modulos/admin/acciones-catalogo";
 import { comprimirImagen } from "@/lib/comprimir-imagen";
-import { aSlug } from "@/lib/formato";
+import { aSlug, TIPO_VEHICULO } from "@/lib/formato";
 
 const claseInput =
   "min-h-11 w-full rounded-lg border border-linea-2 bg-superficie px-3 text-base outline-none focus:border-azul focus:ring-2 focus:ring-azul/40 aria-invalid:border-senal";
-const TIPOS: [string, string][] = [
-  ["hatchback", "Hatchback"],
-  ["sedan", "Sedán"],
-  ["suv", "SUV"],
-  ["todoterreno", "4x4"],
-  ["familiar", "Familiar 7 puestos"],
-];
+const TIPOS = Object.entries(TIPO_VEHICULO);
 
 export interface ModeloEditable {
   id: string;

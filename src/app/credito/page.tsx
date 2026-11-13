@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { connection } from "next/server";
+import { cookies } from "next/headers";
+import { COOKIE_ORIGEN, esCampana } from "@/lib/origen";
 import { asc, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { clausulas, configuracion, modelos } from "@/db/esquema";
@@ -27,6 +29,10 @@ export default function Credito() {
 
 async function Cargar() {
   await connection();
+  // La etiqueta de la red por la que llegó (la guarda el proxy en una cookie httpOnly que el navegador no puede leer)
+  // Solo pasa al navegador si es una campaña válida: una cookie manipulada se descarta aquí mismo
+  const guardado = (await cookies()).get(COOKIE_ORIGEN)?.value;
+  const origenRecordado = esCampana(guardado) ? guardado : null;
   const [[conf], [clausula], lineas] = await Promise.all([
     db.select().from(configuracion).limit(1),
     db.select().from(clausulas).orderBy(desc(clausulas.version)).limit(1),
@@ -39,6 +45,7 @@ async function Cargar() {
 
   return (
     <FormularioCredito
+      origenRecordado={origenRecordado}
       config={{
         asesoraNombre: conf.asesoraNombre,
         asesoraWhatsapp: conf.asesoraWhatsapp,

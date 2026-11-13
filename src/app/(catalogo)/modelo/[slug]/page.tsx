@@ -8,6 +8,7 @@ import { datosAsesora, modeloPorSlug } from "@/modulos/catalogo/consultas";
 import { fechaLarga, TIPO_TEXTO } from "../../textos";
 import { SelectorColor } from "./SelectorColor";
 import { Galeria } from "./Galeria";
+import { Video } from "./Video";
 import { atributosFoto } from "@/modulos/fotos/fotos";
 
 type Params = Promise<{ slug: string }>;
@@ -125,6 +126,13 @@ async function Contenido({ params }: { params: Params }) {
             </a>
           )}
         </div>
+
+        {m.videoYoutube && (
+          <div className="mt-5.5">
+            <h2 className="font-display mb-2 text-xl font-bold">Conócelo en video</h2>
+            <Video id={m.videoYoutube} titulo={`Suzuki ${m.linea}`} />
+          </div>
+        )}
 
         <dl className="mt-5.5 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-linea bg-linea">
           {ficha

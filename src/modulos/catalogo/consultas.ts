@@ -20,6 +20,7 @@ const columnas = {
   motor: t.modelos.motor,
   transmision: t.modelos.transmision,
   descripcion: t.modelos.descripcion,
+  videoYoutube: t.modelos.videoYoutube,
   precio: sql<number | null>`case when ${t.modelos.mostrarPrecio} then ${t.modelos.precioBase} end`.mapWith((v) => (v === null ? null : Number(v))),
 };
 

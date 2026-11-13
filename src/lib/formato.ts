@@ -50,3 +50,12 @@ export const TRANSMISIONES = { mecanica: "mecánica", automatica: "automática" 
 /** { nombre: "GL 1.2", transmision: "mecanica" } → "GL 1.2 mecánica" */
 export const nombreVersion = (v: { nombre: string; transmision: "mecanica" | "automatica" | null }) =>
   v.transmision ? `${v.nombre} ${TRANSMISIONES[v.transmision]}` : v.nombre;
+
+/** Nombre de cada tipo de vehículo. Única fuente: antes estaba copiado en cuatro archivos. */
+export const TIPO_VEHICULO = {
+  hatchback: "Hatchback",
+  sedan: "Sedán",
+  suv: "SUV",
+  todoterreno: "4x4",
+  familiar: "Familiar",
+} as const;

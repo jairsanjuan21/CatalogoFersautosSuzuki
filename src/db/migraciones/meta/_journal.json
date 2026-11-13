@@ -85,6 +85,13 @@
       "when": 1794540703478,
       "tag": "0011_ventas_y_comision",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794541579450,
+      "tag": "0012_video_y_galeria",
+      "breakpoints": true
     }
   ]
 }

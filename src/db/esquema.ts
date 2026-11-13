@@ -97,6 +97,7 @@ export const origenPrecio = pgEnum("origen_precio", ["manual", "pdf_ia"]);
 export const transmision = pgEnum("transmision", ["mecanica", "automatica"]);
 export const metodoComision = pgEnum("metodo_comision", ["proporcional", "millones_completos"]);
 export const formaPago = pgEnum("forma_pago", ["contado", "credito"]);
+export const seccionGaleria = pgEnum("seccion_galeria", ["familia", "clientes"]);
 export const actor = pgEnum("actor", ["cliente", "asesora", "admin", "sistema"]);
 export const tipoPeticion = pgEnum("tipo_peticion", ["consulta", "correccion", "eliminacion", "revocatoria"]);
 export const estadoPeticion = pgEnum("estado_peticion", ["pendiente", "atendida", "rechazada"]);
@@ -237,6 +238,7 @@ export const modelos = pgTable(
     descripcion: text(),
     visible: boolean().notNull().default(false), // nace oculto hasta que esté completo
     archivado: boolean().notNull().default(false), // ya no se vende, pero solicitudes viejas lo usan
+    videoYoutube: text(), // solo el identificador de 11 caracteres, no el enlace
     mostrarPrecio: boolean().notNull().default(true),
     precioBase: pesos(), // "Desde $..." del catálogo: lo define Natalia y casi no cambia
     precioBaseActualizado: timestamp({ withTimezone: true }),
@@ -246,6 +248,7 @@ export const modelos = pgTable(
   },
   (t) => [
     check("modelos_puestos", sql`${t.puestos} between 1 and 9`),
+    check("modelos_video", sql`${t.videoYoutube} is null or ${t.videoYoutube} ~ '^[A-Za-z0-9_-]{11}$'`),
     check("modelos_slug_formato", sql`${t.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`),
     check("modelos_descripcion_corta", sql`char_length(${t.descripcion}) <= 140`),
   ],
@@ -614,6 +617,37 @@ export const ventas = pgTable(
   (t) => [
     index("ventas_fecha").on(t.fecha),
     check("ventas_valor", sql`${t.valor} between 1000000 and 2000000000`),
+  ],
+);
+
+/* ============================================================================
+   GALERÍA DE ENTREGAS: "Familia Suzuki" y "Clientes felices"
+   Las fotos de personas son datos personales (Ley 1581): cada una guarda la
+   constancia de que el cliente autorizó publicarla, y si aparecen menores,
+   de que sus padres o acudientes también lo autorizaron.
+   ========================================================================== */
+
+export const fotosGaleria = pgTable(
+  "fotos_galeria",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    seccion: seccionGaleria().notNull(),
+    claveArchivo: text().notNull(),
+    pie: text(), // "La familia Peña estrenó su Ertiga"
+    modeloId: uuid().references(() => modelos.id, { onDelete: "set null" }),
+    visible: boolean().notNull().default(true),
+    // Constancia de autorización
+    autorizada: boolean().notNull(),
+    hayMenores: boolean().notNull().default(false),
+    autorizacionMenores: boolean().notNull().default(false),
+    autorizadaPor: text().notNull(), // usuario que confirmó la autorización
+    creadoEn: creadoEn(),
+  },
+  (t) => [
+    index("galeria_seccion").on(t.seccion, t.creadoEn.desc()),
+    // La base de datos tampoco acepta una foto sin autorización (ni con menores sin la de sus padres)
+    check("galeria_autorizada", sql`${t.autorizada}`),
+    check("galeria_menores", sql`not ${t.hayMenores} or ${t.autorizacionMenores}`),
   ],
 );
 

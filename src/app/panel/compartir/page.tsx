@@ -1,19 +1,16 @@
 import { Suspense } from "react";
+import { asc, eq, sql } from "drizzle-orm";
 import { exigirRol } from "@/lib/sesion";
+import { db } from "@/db";
+import * as t from "@/db/esquema";
+import { nombreDeAsesora } from "@/lib/formato";
 import { Cargando, Titulo } from "../componentes";
-import { CopiarEnlace } from "./CopiarEnlace";
-
-const ENLACES = [
-  ["Instagram", "instagram"],
-  ["Facebook", "facebook"],
-  ["WhatsApp", "whatsapp"],
-  ["Estados de WhatsApp", "estados"],
-] as const;
+import { PanelCompartir, type Estadisticas } from "./PanelCompartir";
 
 export default function Compartir() {
   return (
     <>
-      <Titulo sub="Usa un enlace distinto en cada red para saber de dónde llegan tus clientes.">Compartir</Titulo>
+      <Titulo sub="Enlaces y mensajes listos para cada red, con lo que ha dado cada una.">Compartir</Titulo>
       <Suspense fallback={<Cargando />}>
         <Contenido />
       </Suspense>
@@ -24,18 +21,18 @@ export default function Compartir() {
 async function Contenido() {
   await exigirRol("asesora");
   const base = (process.env.BETTER_AUTH_URL ?? "http://localhost:3000").replace(/\/$/, "");
-  return (
-    <>
-      <h2 className="font-display mt-7 mb-2.5 text-[22px] font-semibold">Formulario de crédito</h2>
-      <div className="space-y-3 rounded-xl border border-linea bg-superficie p-4">
-        {ENLACES.map(([red, origen]) => (
-          <CopiarEnlace key={origen} etiqueta={red} url={`${base}/credito?origen=${origen}`} />
-        ))}
-      </div>
-      <h2 className="font-display mt-7 mb-2.5 text-[22px] font-semibold">Catálogo</h2>
-      <div className="rounded-xl border border-linea bg-superficie p-4">
-        <CopiarEnlace etiqueta="Página principal" url={base} />
-      </div>
-    </>
-  );
+  const [porOrigen, modelos, [conf]] = await Promise.all([
+    db
+      .select({
+        origen: t.solicitudes.origen,
+        recientes: sql<number>`count(*) filter (where ${t.solicitudes.creadoEn} >= now() - interval '30 days')`.mapWith(Number),
+        vendidas: sql<number>`count(*) filter (where ${t.solicitudes.estado} = 'entregada')`.mapWith(Number),
+      })
+      .from(t.solicitudes)
+      .groupBy(t.solicitudes.origen),
+    db.select({ slug: t.modelos.slug, linea: t.modelos.linea }).from(t.modelos).where(eq(t.modelos.visible, true)).orderBy(asc(t.modelos.orden)),
+    db.select({ nombre: t.configuracion.asesoraNombre }).from(t.configuracion).limit(1),
+  ]);
+  const estadisticas: Estadisticas = Object.fromEntries(porOrigen.map((o) => [o.origen, { recientes: o.recientes, vendidas: o.vendidas }]));
+  return <PanelCompartir base={base} primerNombre={conf ? nombreDeAsesora(conf.nombre).primero : "Natalia"} modelos={modelos} estadisticas={estadisticas} />;
 }
