@@ -109,6 +109,26 @@ Natalia descarga los PDF desde `GET /api/solicitudes/:id/pdf?tipo=formulario|ced
 cuenta de asesora puede hacerlo, el formulario exige que la solicitud tenga valor del vehículo y
 cada descarga queda en la auditoría con la huella SHA-256 del archivo.
 
+## Lectura de precios con IA
+
+En **Panel → Precios**, Natalia sube el PDF de precios que le llega y el sistema le muestra una
+tabla para confirmar antes de publicar. Por defecto usa **Google Gemini, que tiene plan gratuito**:
+
+1. Entra a <https://aistudio.google.com/apikey> con una cuenta de Google y crea una llave (no pide tarjeta).
+2. En `.env`: `GEMINI_API_KEY=...`
+3. Prueba con `pruebas/lista-precios-ejemplo.pdf`.
+
+La IA solo **extrae** las filas y dice a qué modelo pertenece cada una; el precio "desde" (la versión
+más económica) lo calcula el código. Los cambios mayores al 25 % llegan desmarcados. Sin llave, todo
+lo demás funciona igual y la carga de PDF muestra un aviso.
+
+El proveedor es intercambiable con `IA_PROVEEDOR` (`gemini` o `anthropic`): las instrucciones y el
+esquema son los mismos, solo cambia la función que habla con cada API (`lector-ia.ts`).
+
+Notas del plan gratuito de Gemini: tiene límites de peticiones por minuto y por día (de sobra para
+una o dos listas diarias), y Google puede usar esas peticiones para mejorar sus productos. Por eso
+solo se le envían listas de precios, nunca datos de clientes.
+
 ## Fotos del catálogo
 
 El admin sube las fotos de cada modelo en **Admin → Catálogo**, y Natalia sube la suya en
