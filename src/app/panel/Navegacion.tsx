@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BotonSalir } from "@/componentes/BotonSalir";
+import { SelectorTema } from "@/componentes/SelectorTema";
 
 const ICONOS = {
   inicio: "M4 11l8-7 8 7v9h-5v-6H9v6H4z",
@@ -31,18 +32,21 @@ export function BarraNavegacion({ ruta }: { ruta: string | null }) {
   return (
     <nav
       aria-label="Secciones del panel"
-      className="fixed inset-x-0 bottom-0 z-20 flex border-t border-linea bg-superficie pb-[env(safe-area-inset-bottom)] lg:inset-y-0 lg:right-auto lg:w-56 lg:flex-col lg:gap-1 lg:border-t-0 lg:border-r lg:p-3 lg:pt-5"
+      className="fixed inset-x-0 bottom-0 z-20 flex border-t border-linea bg-superficie pb-[env(safe-area-inset-bottom)] lg:inset-y-0 lg:right-auto lg:w-60 lg:flex-col lg:gap-0.5 lg:border-t-0 lg:border-r lg:p-3.5 lg:pt-5"
     >
-      <div className="font-display hidden px-3 pb-4 text-2xl font-bold text-azul-texto lg:block">
-        Fersautos
-        <span className="block font-sans text-sm font-normal text-texto-2">Panel de Natalia</span>
+      <div className="hidden items-center gap-2.5 px-2 pb-5 lg:flex">
+        <span aria-hidden className="grid size-9 place-items-center rounded-[10px] bg-heroe text-base font-extrabold text-white">F</span>
+        <span className="flex flex-col leading-tight">
+          <strong className="text-[15px]">Fersautos</strong>
+          <span className="text-xs text-texto-3">Panel de Natalia</span>
+        </span>
       </div>
       {ENLACES.map((e) => (
         <Link
           key={e.href}
           href={e.href}
           aria-current={activo(e) ? "page" : undefined}
-          className={`${"soloEscritorio" in e ? "hidden lg:flex" : "flex"} flex-1 flex-col items-center gap-0.5 px-0.5 pt-2 pb-2.5 text-xs text-texto-2 aria-[current=page]:font-semibold aria-[current=page]:text-azul-texto lg:flex-none lg:flex-row lg:gap-3 lg:rounded-lg lg:px-3 lg:py-2.5 lg:text-base lg:aria-[current=page]:bg-cielo`}
+          className={`${"soloEscritorio" in e ? "hidden lg:flex" : "flex"} flex-1 flex-col items-center gap-0.5 px-0.5 pt-2 pb-2.5 text-xs text-texto-2 aria-[current=page]:font-semibold aria-[current=page]:text-azul-texto lg:flex-none lg:flex-row lg:gap-3 lg:rounded-[10px] lg:px-3 lg:py-2.5 lg:text-sm lg:font-medium lg:text-texto-4 lg:hover:bg-superficie-2 lg:aria-[current=page]:bg-cielo lg:aria-[current=page]:text-azul-texto`}
         >
           <svg viewBox="0 0 24 24" aria-hidden className="size-[22px] fill-none stroke-current stroke-[1.8] [stroke-linecap:round] [stroke-linejoin:round]">
             <path d={e.icono} />
@@ -50,7 +54,8 @@ export function BarraNavegacion({ ruta }: { ruta: string | null }) {
           {e.texto}
         </Link>
       ))}
-      <div className="mt-auto hidden border-t border-linea pt-2 lg:block">
+      <div className="mt-auto hidden flex-col gap-2 border-t border-linea pt-3 lg:flex">
+        <SelectorTema variante="texto" />
         <BotonSalir variante="lateral" />
       </div>
     </nav>

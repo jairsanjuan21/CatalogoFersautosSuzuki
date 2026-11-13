@@ -1,48 +1,122 @@
 @import "tailwindcss";
 
-/* Tokens de diseño de los prototipos aprobados.
-   Uso en Tailwind: bg-fondo, bg-superficie, text-texto, text-texto-2,
-   border-linea, bg-azul, text-azul-texto, bg-cielo, text-senal, etc. */
+/* TEMA: claro, oscuro o "sistema" (sigue al dispositivo).
+   La elección se guarda en el navegador y un script del layout raíz la pone en
+   <html data-tema="claro|oscuro"> antes de dibujar la página (sin destello blanco).
+   Sin elección, aplica el del dispositivo. Uso en Tailwind: bg-fondo, text-texto-2, etc. */
 :root {
-  --fondo: #f3f6fa;
+  --fondo: #f6f7f9;
   --superficie: #ffffff;
-  --texto: #1a2330;
-  --texto-2: #556073;
-  --linea: #d5dce6;
-  --linea-2: #b9c3d1;
-  --cielo: #e6edf8;
+  --superficie-2: #f9fafb;
+  --texto: #101828;
+  --texto-2: #475467;
+  --texto-3: #667085;
+  --texto-4: #344054;
+  --linea: #e4e7ec;
+  --linea-2: #d0d5dd;
+  --divisor: #f2f4f7;
+  --pista: #f2f4f7;
+  --cielo: #eef3fb;
   --azul: #1f4e9c;
   --azul-hover: #173d7c;
   --azul-texto: #1f4e9c;
+  --grafico: #1f4e9c;
+  --grafico-2: #84adff;
   --asfalto: #2b313b;
   --marca-via: #f2c94c;
-  --senal: #c9302c;
-  --senal-fondo: #fcebea;
-  --ok: #1c7a4e;
-  --ok-fondo: #e5f4ec;
-  --ambar: #8a5a00;
-  --ambar-fondo: #fdf1d8;
+  --senal: #b42318;
+  --senal-fondo: #fef3f2;
+  --ok: #067647;
+  --ok-fondo: #ecfdf3;
+  --verde: #12b76a;
+  --ambar: #b54708;
+  --ambar-fondo: #fffaeb;
+  --heroe: #1f4e9c;
+  --heroe-sombra: 0 14px 30px -12px rgb(31 78 156 / 0.6);
+  --sombra: 0 1px 2px rgb(16 24 40 / 0.04);
+  --emb-1: #1f4e9c;
+  --emb-2: #3b6fd0;
+  --emb-3: #6c96e8;
+  --emb-4: #47cd89;
+  --emb-5: #067647;
+  color-scheme: light;
+}
+
+/* Oscuro elegido a mano. El bloque de abajo repite los MISMOS valores para
+   "sistema" con el dispositivo en modo oscuro: si cambias uno, cambia el otro. */
+:root[data-tema="oscuro"] {
+  --fondo: #0c111d;
+  --superficie: #161b26;
+  --superficie-2: #13161f;
+  --texto: #f5f5f6;
+  --texto-2: #a4a7ae;
+  --texto-3: #94969c;
+  --texto-4: #cecfd2;
+  --linea: #262b36;
+  --linea-2: #333741;
+  --divisor: #1f242f;
+  --pista: #232937;
+  --cielo: #172b55;
+  --azul: #3b6fd0;
+  --azul-hover: #4b7cd3;
+  --azul-texto: #84adff;
+  --grafico: #528bff;
+  --grafico-2: #2f5db8;
+  --asfalto: #3a4352;
+  --senal: #f97066;
+  --senal-fondo: #55160c;
+  --ok: #47cd89;
+  --ok-fondo: #053321;
+  --verde: #17b26a;
+  --ambar: #fdb022;
+  --ambar-fondo: #4e1d09;
+  --heroe: #1f4e9c;
+  --heroe-sombra: 0 14px 30px -12px rgb(0 0 0 / 0.7);
+  --sombra: none;
+  --emb-1: #528bff;
+  --emb-2: #3b6fd0;
+  --emb-3: #2f5db8;
+  --emb-4: #17b26a;
+  --emb-5: #47cd89;
+  color-scheme: dark;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --fondo: #0f1622;
-    --superficie: #172130;
-    --texto: #e6ebf2;
-    --texto-2: #9ca8ba;
-    --linea: #2a3647;
-    --linea-2: #3b4a5f;
-    --cielo: #1b2a42;
-    --azul: #3a6cc4;
+  :root:not([data-tema="claro"]) {
+    --fondo: #0c111d;
+    --superficie: #161b26;
+    --superficie-2: #13161f;
+    --texto: #f5f5f6;
+    --texto-2: #a4a7ae;
+    --texto-3: #94969c;
+    --texto-4: #cecfd2;
+    --linea: #262b36;
+    --linea-2: #333741;
+    --divisor: #1f242f;
+    --pista: #232937;
+    --cielo: #172b55;
+    --azul: #3b6fd0;
     --azul-hover: #4b7cd3;
-    --azul-texto: #8fb3f0;
+    --azul-texto: #84adff;
+    --grafico: #528bff;
+    --grafico-2: #2f5db8;
     --asfalto: #3a4352;
-    --senal: #f07a75;
-    --senal-fondo: #3a1e20;
-    --ok: #6fd3a0;
-    --ok-fondo: #16322a;
-    --ambar: #f2c46b;
-    --ambar-fondo: #3a2e14;
+    --senal: #f97066;
+    --senal-fondo: #55160c;
+    --ok: #47cd89;
+    --ok-fondo: #053321;
+    --verde: #17b26a;
+    --ambar: #fdb022;
+    --ambar-fondo: #4e1d09;
+    --heroe: #1f4e9c;
+    --heroe-sombra: 0 14px 30px -12px rgb(0 0 0 / 0.7);
+    --sombra: none;
+    --emb-1: #528bff;
+    --emb-2: #3b6fd0;
+    --emb-3: #2f5db8;
+    --emb-4: #17b26a;
+    --emb-5: #47cd89;
+    color-scheme: dark;
   }
 }
 
@@ -65,8 +139,23 @@
   --color-ok-fondo: var(--ok-fondo);
   --color-ambar: var(--ambar);
   --color-ambar-fondo: var(--ambar-fondo);
+  --color-superficie-2: var(--superficie-2);
+  --color-texto-3: var(--texto-3);
+  --color-texto-4: var(--texto-4);
+  --color-divisor: var(--divisor);
+  --color-pista: var(--pista);
+  --color-grafico: var(--grafico);
+  --color-grafico-2: var(--grafico-2);
+  --color-verde: var(--verde);
+  --color-heroe: var(--heroe);
+  --color-emb-1: var(--emb-1);
+  --color-emb-2: var(--emb-2);
+  --color-emb-3: var(--emb-3);
+  --color-emb-4: var(--emb-4);
+  --color-emb-5: var(--emb-5);
   --font-sans: var(--font-sans-base), system-ui, sans-serif;
   --font-display: var(--font-display), "Arial Narrow", system-ui, sans-serif;
+  --font-panel: var(--font-panel-base), system-ui, sans-serif;
 }
 
 body {
@@ -79,4 +168,51 @@ body {
   to {
     left: calc(100% - 66px);
   }
+}
+
+/* ===========================================================================
+   ANIMACIONES DE LOS PANELES (diseño "Claro, enfocado en ventas")
+   Se ejecutan una vez al abrir; las continuas (brillo, onda, vivo) son sutiles.
+   Con "reducir movimiento" todas quedan quietas en su estado final.
+   ======================================================================== */
+.anim-sube { opacity: 0; transform: translateY(22px); animation: anim-sube 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+@keyframes anim-sube { to { opacity: 1; transform: none; } }
+
+.anim-brillo { position: absolute; top: -20%; bottom: -20%; left: 0; width: 38%; pointer-events: none;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 0.22), transparent);
+  transform: translateX(-140%) skewX(-18deg); animation: anim-brillo 5.5s ease-in-out 0.9s infinite; }
+@keyframes anim-brillo { 0% { transform: translateX(-140%) skewX(-18deg); } 22%, 100% { transform: translateX(420%) skewX(-18deg); } }
+
+/* Trazos SVG con pathLength="1" */
+.anim-dibujar { stroke-dasharray: 1; stroke-dashoffset: 1; animation: anim-dibujar 1.7s cubic-bezier(0.4, 0, 0.2, 1) 0.5s forwards; }
+@keyframes anim-dibujar { to { stroke-dashoffset: 0; } }
+
+/* Anillo de la meta: pathLength="100" y --fin = 100 - porcentaje */
+.anim-anillo { stroke-dasharray: 100; stroke-dashoffset: 100; animation: anim-anillo 1.6s cubic-bezier(0.3, 0.7, 0.2, 1) 0.5s forwards; }
+@keyframes anim-anillo { to { stroke-dashoffset: var(--fin); } }
+
+.anim-aparece { opacity: 0; animation: anim-aparece 0.6s ease 1.6s forwards; }
+@keyframes anim-aparece { to { opacity: 1; } }
+
+.anim-onda { transform-box: fill-box; transform-origin: center; animation: anim-onda 1.8s ease-out 2.1s infinite; }
+@keyframes anim-onda { 0% { transform: scale(1); opacity: 0.7; } 100% { transform: scale(3.4); opacity: 0; } }
+
+/* Barras que crecen con un pequeño rebote */
+.anim-resorte { transform-origin: left; transform: scaleX(0); animation: anim-resorte 0.9s cubic-bezier(0.34, 1.45, 0.64, 1) forwards; }
+@keyframes anim-resorte { to { transform: scaleX(1); } }
+
+.anim-salta { display: inline-block; transform: scale(0); animation: anim-salta 0.5s cubic-bezier(0.34, 1.7, 0.64, 1) forwards; }
+@keyframes anim-salta { to { transform: scale(1); } }
+
+.anim-vivo { animation: anim-vivo 1.6s ease-in-out infinite; }
+@keyframes anim-vivo { 0%, 100% { box-shadow: 0 0 0 0 rgb(18 183 106 / 0.55); } 50% { box-shadow: 0 0 0 7px rgb(18 183 106 / 0); } }
+
+/* Cambio de tema suave (solo colores) */
+.tema-suave * { transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-sube, .anim-dibujar, .anim-anillo, .anim-aparece, .anim-resorte, .anim-salta { animation-duration: 1ms; animation-delay: 0s; }
+  .anim-brillo, .anim-onda, .anim-vivo { animation: none; }
+  .anim-brillo { display: none; }
+  .tema-suave * { transition: none; }
 }

@@ -1,0 +1,2 @@
+ALTER TABLE "configuracion" ADD COLUMN "meta_ventas_mes" smallint;--> statement-breakpoint
+ALTER TABLE "configuracion" ADD CONSTRAINT "configuracion_meta" CHECK ("configuracion"."meta_ventas_mes" is null or "configuracion"."meta_ventas_mes" between 1 and 100);

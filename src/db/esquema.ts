@@ -202,12 +202,14 @@ export const configuracion = pgTable(
     // Comisión de Natalia: X pesos por cada millón del valor del vehículo
     comisionPorMillon: integer().notNull().default(5000),
     comisionMetodo: metodoComision().notNull().default("proporcional"),
+    metaVentasMes: smallint(), // vehículos que Natalia quiere vender al mes; null = sin meta
     diasRetencionDocumentos: smallint().notNull().default(90),
     actualizadoEn: actualizadoEn(),
   },
   (t) => [
     check("configuracion_fila_unica", sql`${t.id} = 1`),
     check("configuracion_frase_corta", sql`char_length(${t.asesoraFrase}) <= 140`),
+    check("configuracion_meta", sql`${t.metaVentasMes} is null or ${t.metaVentasMes} between 1 and 100`),
     check("configuracion_whatsapp", sql`${t.asesoraWhatsapp} is null or ${t.asesoraWhatsapp} ~ '^3[0-9]{9}$'`),
   ],
 );

@@ -23,6 +23,11 @@ const esquema = z.object({
     .transform((v) => v.replace(/\D/g, ""))
     .refine((v) => v === "" || /^3\d{9}$/.test(v), { error: "Escribe un celular de 10 dígitos que empiece por 3." })
     .transform((v) => v || null),
+  metaVentasMes: z
+    .string()
+    .trim()
+    .transform((v) => (v ? Number(v) : null))
+    .refine((v) => v === null || (Number.isInteger(v) && v >= 1 && v <= 100), { error: "Escribe cuántos vehículos, entre 1 y 100." }),
 });
 
 export async function guardarPerfil(_previo: ResultadoPerfil, formulario: FormData): Promise<ResultadoPerfil> {
@@ -30,7 +35,7 @@ export async function guardarPerfil(_previo: ResultadoPerfil, formulario: FormDa
   const r = esquema.safeParse(Object.fromEntries(formulario));
   if (!r.success) return { ok: false, errores: erroresPorCampo(r.error) };
 
-  await db.update(t.configuracion).set({ asesoraFrase: r.data.frase, asesoraWhatsapp: r.data.whatsapp }).where(eq(t.configuracion.id, 1));
+  await db.update(t.configuracion).set({ asesoraFrase: r.data.frase, asesoraWhatsapp: r.data.whatsapp, metaVentasMes: r.data.metaVentasMes }).where(eq(t.configuracion.id, 1));
   await db.insert(t.auditoria).values({ actor: "asesora", usuarioId, accion: "Actualizó su perfil público", entidad: "configuracion", ip, detalle: r.data });
   refresh();
   return { ok: true, mensaje: r.data.whatsapp ? "Perfil guardado." : "Perfil guardado. Sin WhatsApp, los botones de “Escríbeme” no aparecen en el catálogo." };

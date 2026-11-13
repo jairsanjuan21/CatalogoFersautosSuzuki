@@ -7,7 +7,7 @@ import { FotoPerfil } from "./FotoPerfil";
 const claseInput =
   "min-h-11 w-full rounded-lg border border-linea-2 bg-superficie px-3 text-base outline-none focus:border-azul focus:ring-2 focus:ring-azul/40 aria-invalid:border-senal";
 
-export function FormularioPerfil({ nombre, frase: fraseInicial, whatsapp: waInicial, foto }: { nombre: string; frase: string; whatsapp: string | null; foto: { src: string; srcSet: string } | null }) {
+export function FormularioPerfil({ nombre, frase: fraseInicial, whatsapp: waInicial, foto, meta }: { nombre: string; frase: string; whatsapp: string | null; foto: { src: string; srcSet: string } | null; meta: number | null }) {
   const [estado, accion, guardando] = useActionState(guardarPerfil, { ok: true } as ResultadoPerfil);
   const [frase, setFrase] = useState(fraseInicial);
   const [wa, setWa] = useState(waInicial ?? "");
@@ -30,6 +30,11 @@ export function FormularioPerfil({ nombre, frase: fraseInicial, whatsapp: waInic
         <input id="wa" name="whatsapp" inputMode="tel" maxLength={10} placeholder="3001234567" value={wa} onChange={(e) => setWa(e.target.value.replace(/\D/g, ""))} aria-invalid={!!estado.errores?.whatsapp} className={claseInput} />
         <p className="mt-1 text-[13px] text-texto-2">Lo usan el botón “Escríbeme” del catálogo y la confirmación del formulario.</p>
         {estado.errores?.whatsapp && <p className="text-sm text-senal">{estado.errores.whatsapp}</p>}
+
+        <label htmlFor="meta" className="mt-3 mb-1 block text-sm font-semibold">Meta de vehículos al mes <span className="font-normal text-texto-2">(opcional)</span></label>
+        <input id="meta" name="metaVentasMes" type="number" inputMode="numeric" min={1} max={100} defaultValue={meta ?? ""} placeholder="Ej: 5" aria-invalid={!!estado.errores?.metaVentasMes} className={`${claseInput} max-w-32`} />
+        <p className="mt-1 text-[13px] text-texto-2">Se muestra como un anillo de avance en tu inicio. Déjalo vacío si no quieres meta.</p>
+        {estado.errores?.metaVentasMes && <p className="text-sm text-senal">{estado.errores.metaVentasMes}</p>}
 
         <button disabled={guardando} className="mt-4 min-h-11 rounded-lg bg-azul px-4 font-semibold text-white hover:bg-azul-hover disabled:opacity-60">
           {guardando ? "Guardando…" : "Guardar perfil"}

@@ -92,6 +92,13 @@
       "when": 1794541579450,
       "tag": "0012_video_y_galeria",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794587776901,
+      "tag": "0013_meta_ventas",
+      "breakpoints": true
     }
   ]
 }

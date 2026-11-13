@@ -17,17 +17,21 @@ const ENLACES = [
 export function BarraAdmin({ ruta }: { ruta: string | null }) {
   const activo = (href: string) => (ruta === null ? false : href === "/admin" ? ruta === "/admin" : ruta.startsWith(href));
   return (
-    <nav aria-label="Administración" className="sticky top-0 z-20 bg-[#1c2738] text-[#c9d3e1] lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-60 lg:flex-col">
-      <div className="font-display px-5 pt-4 pb-1.5 text-xl font-bold text-white lg:pt-6">
-        Fersautos <span className="ml-1.5 rounded bg-senal px-1.5 py-0.5 align-[3px] font-sans text-xs font-semibold text-white">Admin</span>
+    <nav aria-label="Administración" className="sticky top-0 z-20 border-b border-linea bg-superficie lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-62 lg:flex-col lg:border-r lg:border-b-0 lg:p-3.5 lg:pt-5">
+      <div className="flex items-center gap-2.5 px-4 pt-3 pb-2 lg:px-2 lg:pt-0 lg:pb-5">
+        <span aria-hidden className="grid size-9 place-items-center rounded-[10px] bg-heroe text-base font-extrabold text-white">F</span>
+        <span className="flex flex-col leading-tight">
+          <strong className="text-[15px]">Fersautos</strong>
+          <span className="text-xs text-texto-3">Administración</span>
+        </span>
       </div>
-      <ul className="flex gap-1 overflow-x-auto px-2.5 pb-2.5 [scrollbar-width:none] lg:flex-col lg:overflow-visible">
+      <ul className="flex gap-1 overflow-x-auto px-2.5 pb-2.5 [scrollbar-width:none] lg:flex-col lg:gap-0.5 lg:overflow-visible lg:px-0">
         {ENLACES.map((e) => (
           <li key={e.href}>
             <Link
               href={e.href}
               aria-current={activo(e.href) ? "page" : undefined}
-              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[15px] whitespace-nowrap aria-[current=page]:bg-[#2c3b54] aria-[current=page]:font-semibold aria-[current=page]:text-white"
+              className="flex min-h-10 items-center gap-2.5 rounded-[10px] px-3 text-sm font-medium whitespace-nowrap text-texto-4 hover:bg-superficie-2 aria-[current=page]:bg-cielo aria-[current=page]:font-semibold aria-[current=page]:text-azul-texto"
             >
               <svg viewBox="0 0 24 24" aria-hidden className="size-[18px] flex-none fill-none stroke-current stroke-[1.8] [stroke-linecap:round] [stroke-linejoin:round]">
                 <path d={e.icono} />
@@ -36,14 +40,13 @@ export function BarraAdmin({ ruta }: { ruta: string | null }) {
             </Link>
           </li>
         ))}
-        {/* En el celular el menú es una fila horizontal: "Cerrar sesión" va al final de ella */}
         <li className="lg:hidden">
-          <BotonSalir variante="oscuro" />
+          <BotonSalir variante="lateral" />
         </li>
       </ul>
-      <div className="mt-auto hidden border-t border-[#2c3b54] px-2.5 py-3 lg:block">
-        <BotonSalir variante="oscuro" />
-        <p className="mt-2 px-3 text-[13px]">Cuenta técnica: sin acceso a los datos financieros de los clientes.</p>
+      <div className="mt-auto hidden flex-col gap-2 border-t border-linea pt-3 lg:flex">
+        <BotonSalir variante="lateral" />
+        <p className="px-3 text-xs text-texto-3">Cuenta técnica: sin acceso a los datos financieros de los clientes.</p>
       </div>
     </nav>
   );

@@ -121,6 +121,15 @@ Cada modelo tiene un **precio base** fijo (el "Desde" del catálogo) y varias **
   precio base no se vence.
 - En cada solicitud, Natalia elige **modelo y versión**; el PDF muestra ambos en el campo "Línea".
 
+## Tema claro, oscuro o del sistema
+
+Los paneles tienen un selector de tema (cabecera en el celular, menú lateral o encabezado en el
+computador). "Sistema" sigue al dispositivo y es el predeterminado. La elección se guarda en el
+navegador y un script del layout raíz (`src/lib/tema.ts`) la aplica en `<html data-tema>` antes de
+dibujar, para que no haya destello blanco. Todos los colores son variables en `globals.css`: hay un
+bloque para claro y dos idénticos para oscuro (elegido a mano, o "sistema" con el dispositivo en
+oscuro). Si cambias uno de los oscuros, cambia el otro.
+
 ## Catálogo: quién lo administra
 
 Natalia y el administrador administran el catálogo con **las mismas pantallas**
