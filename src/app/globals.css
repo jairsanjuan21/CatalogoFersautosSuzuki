@@ -210,9 +210,52 @@ body {
 /* Cambio de tema suave (solo colores) */
 .tema-suave * { transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease; }
 
+/* ===========================================================================
+   INGRESO (propuesta 3: recorrido de la venta)
+   La línea se llena en 6 s y cada paso se enciende cuando la línea lo alcanza:
+   los pasos están a 0, 1/3, 2/3 y 3/3 de la línea, que se llena hasta el 70 % del ciclo.
+   ======================================================================== */
+.ingreso-lado::before { content: ""; position: absolute; right: -180px; top: -180px; width: 560px; height: 560px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, var(--cielo), transparent); animation: ingreso-respira 8s ease-in-out infinite; }
+@keyframes ingreso-respira { 50% { transform: scale(1.15); } }
+
+.ingreso-acento { background: linear-gradient(90deg, var(--azul-texto), var(--ok), var(--azul-texto)); background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent; animation: ingreso-tinta 6s linear 1.4s infinite; }
+@keyframes ingreso-tinta { to { background-position: -200% 0; } }
+
+.ingreso-via { transform-origin: left; transform: scaleX(0); animation: ingreso-via 6s linear 1s infinite; }
+@keyframes ingreso-via { 0% { transform: scaleX(0); opacity: 1; } 70%, 90% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
+
+.ingreso-nodo { animation: 6s ease 1s infinite; }
+.ingreso-nodo-1 { animation-name: ingreso-paso-1; }
+.ingreso-nodo-2 { animation-name: ingreso-paso-2; }
+.ingreso-nodo-3 { animation-name: ingreso-paso-3; }
+.ingreso-nodo-4 { animation-name: ingreso-paso-4; }
+@keyframes ingreso-paso-1 { 0% { background: var(--superficie); border-color: var(--linea); color: var(--texto-3); box-shadow: none; } 3%, 90% { background: var(--azul); border-color: var(--azul); color: #fff; box-shadow: 0 0 0 6px var(--cielo); } 96%, 100% { background: var(--superficie); border-color: var(--linea); color: var(--texto-3); box-shadow: none; } }
+@keyframes ingreso-paso-2 { 0%, 23% { background: var(--superficie); border-color: var(--linea); color: var(--texto-3); box-shadow: none; } 26%, 90% { background: var(--azul); border-color: var(--azul); color: #fff; box-shadow: 0 0 0 6px var(--cielo); } 96%, 100% { background: var(--superficie); border-color: var(--linea); color: var(--texto-3); box-shadow: none; } }
+@keyframes ingreso-paso-3 { 0%, 46% { background: var(--superficie); border-color: var(--linea); color: var(--texto-3); box-shadow: none; } 49%, 90% { background: var(--azul); border-color: var(--azul); color: #fff; box-shadow: 0 0 0 6px var(--cielo); } 96%, 100% { background: var(--superficie); border-color: var(--linea); color: var(--texto-3); box-shadow: none; } }
+@keyframes ingreso-paso-4 { 0%, 69% { background: var(--superficie); border-color: var(--linea); color: var(--texto-3); box-shadow: none; } 72%, 90% { background: var(--azul); border-color: var(--azul); color: #fff; box-shadow: 0 0 0 6px var(--cielo); } 96%, 100% { background: var(--superficie); border-color: var(--linea); color: var(--texto-3); box-shadow: none; } }
+
+/* Formulario: sacudida al fallar, aviso que baja, giro de carga y chulo que se dibuja */
+.ingreso-tiembla { animation: ingreso-tiembla 0.42s ease; }
+@keyframes ingreso-tiembla { 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
+.ingreso-aviso { animation: ingreso-aviso 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@keyframes ingreso-aviso { from { opacity: 0; transform: translateY(-6px); } }
+.ingreso-giro { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgb(255 255 255 / 0.35); border-top-color: #fff; animation: ingreso-giro 0.7s linear infinite; }
+@keyframes ingreso-giro { to { transform: rotate(360deg); } }
+.ingreso-chulo { stroke-dasharray: 24; stroke-dashoffset: 24; animation: anim-dibujar 0.45s ease 0.05s forwards; }
+.ingreso-boton::after { content: ""; position: absolute; top: -30%; bottom: -30%; left: 0; width: 34%; pointer-events: none;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 0.28), transparent); transform: translateX(-160%) skewX(-18deg); }
+.ingreso-boton:hover:not(:disabled)::after { animation: ingreso-barrido 0.9s ease; }
+@keyframes ingreso-barrido { to { transform: translateX(420%) skewX(-18deg); } }
+
 @media (prefers-reduced-motion: reduce) {
   .anim-sube, .anim-dibujar, .anim-anillo, .anim-aparece, .anim-resorte, .anim-salta { animation-duration: 1ms; animation-delay: 0s; }
   .anim-brillo, .anim-onda, .anim-vivo { animation: none; }
   .anim-brillo { display: none; }
   .tema-suave * { transition: none; }
+  .ingreso-lado::before, .ingreso-acento, .ingreso-nodo, .ingreso-tiembla, .ingreso-aviso, .ingreso-boton::after { animation: none; }
+  .ingreso-via { animation: none; transform: none; }
+  .ingreso-chulo { animation: none; stroke-dashoffset: 0; }
+  .ingreso-giro { animation-duration: 1.6s; }
 }

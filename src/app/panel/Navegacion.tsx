@@ -55,7 +55,7 @@ export function BarraNavegacion({ ruta }: { ruta: string | null }) {
         </Link>
       ))}
       <div className="mt-auto hidden flex-col gap-2 border-t border-linea pt-3 lg:flex">
-        <SelectorTema variante="texto" />
+        <SelectorTema variante="lateral" />
         <BotonSalir variante="lateral" />
       </div>
     </nav>

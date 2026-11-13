@@ -25,8 +25,13 @@ function aplicar(tema: Tema) {
   window.setTimeout(() => raiz.classList.remove("tema-suave"), 400);
 }
 
-/** Selector de tema. "iconos" para la cabecera del celular; "texto" para computador. */
-export function SelectorTema({ variante = "iconos" }: { variante?: "iconos" | "texto" }) {
+/**
+ * Selector de tema.
+ *  "iconos":  solo íconos (cabecera del celular)
+ *  "texto":   íconos con nombre (encabezados anchos)
+ *  "lateral": la palabra "Tema" y los íconos, ocupando todo el ancho (menús laterales angostos)
+ */
+export function SelectorTema({ variante = "iconos" }: { variante?: "iconos" | "texto" | "lateral" }) {
   // En el servidor no se sabe el tema guardado: se muestra "sistema" y se corrige al montar
   const [tema, setTema] = useState<Tema>("sistema");
   useEffect(() => {
@@ -35,24 +40,32 @@ export function SelectorTema({ variante = "iconos" }: { variante?: "iconos" | "t
     if (t === "claro" || t === "oscuro") setTema(t);
   }, []);
 
-  return (
+  const conTexto = variante === "texto";
+  const grupo = (
     <div role="group" aria-label="Apariencia" className="flex rounded-xl border border-linea bg-superficie p-0.5">
       {(Object.keys(ICONOS) as Tema[]).map((t) => (
         <button
           key={t}
           type="button"
           aria-pressed={tema === t}
-          aria-label={variante === "iconos" ? AYUDA[t] : undefined}
+          aria-label={conTexto ? undefined : AYUDA[t]}
           title={AYUDA[t]}
           onClick={() => { setTema(t); aplicar(t); }}
-          className={`flex items-center justify-center gap-1.5 rounded-[10px] text-[13px] font-semibold text-texto-2 aria-pressed:bg-azul aria-pressed:text-white ${variante === "iconos" ? "h-10 w-9" : "min-h-10 px-3"}`}
+          className={`flex items-center justify-center gap-1.5 rounded-[10px] text-[13px] font-semibold text-texto-2 aria-pressed:bg-azul aria-pressed:text-white ${conTexto ? "min-h-10 px-3" : "h-10 w-9"}`}
         >
           <svg viewBox="0 0 24 24" aria-hidden className="size-4 fill-none stroke-current stroke-2 [stroke-linecap:round] [stroke-linejoin:round]">
             <path d={ICONOS[t]} />
           </svg>
-          {variante === "texto" && NOMBRES[t]}
+          {conTexto && NOMBRES[t]}
         </button>
       ))}
+    </div>
+  );
+  if (variante !== "lateral") return grupo;
+  return (
+    <div className="flex items-center justify-between gap-2 px-3">
+      <span className="text-sm font-medium text-texto-2">Tema</span>
+      {grupo}
     </div>
   );
 }
