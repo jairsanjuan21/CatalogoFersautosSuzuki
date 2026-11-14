@@ -43,7 +43,7 @@ function instrucciones(d: DatosVehiculo) {
   ]
     .filter(Boolean)
     .join("\n");
-  return `Eres redactor del catálogo web de Natalia García, asesora de ventas de Suzuki en Fersautos, Cúcuta (Colombia).
+  return `Eres redactor del catálogo web de Natalia Sierra, asesora de ventas de Suzuki en Fersautos, Cúcuta (Colombia).
 
 Escribe TRES descripciones cortas y distintas para la tarjeta de este vehículo en el catálogo.
 

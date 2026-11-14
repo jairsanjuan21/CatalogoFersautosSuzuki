@@ -1,6 +1,6 @@
 # Catálogo Fersautos Suzuki
 
-Sistema web para Natalia García, asesora comercial Suzuki en Fersautos (sede Diagonal Santander, Cúcuta):
+Sistema web para Natalia Sierra (Dayerly Natalia Garcia Sierra), asesora comercial Suzuki en Fersautos (sede Diagonal Santander, Cúcuta):
 catálogo público, formulario de solicitud de crédito, panel de la asesora y panel de administración.
 
 **Stack:** Next.js 16 · TypeScript · Tailwind CSS 4 · PostgreSQL 17 · Drizzle ORM · Docker
@@ -44,7 +44,7 @@ Nadie se puede registrar desde la página: las dos cuentas se crean por consola.
 La contraseña se genera al azar y se muestra **una sola vez**.
 
 ```bash
-npm run usuario:crear -- --nombre "Natalia García" --correo natalia@correo.com --rol asesora
+npm run usuario:crear -- --nombre "Natalia Sierra" --correo natalia@correo.com --rol asesora
 npm run usuario:crear -- --nombre "Jair" --correo jair@correo.com --rol admin
 
 # Asignar una contraseña nueva (cierra todas sus sesiones abiertas)

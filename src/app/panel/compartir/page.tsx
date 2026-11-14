@@ -31,8 +31,8 @@ async function Contenido() {
       .from(t.solicitudes)
       .groupBy(t.solicitudes.origen),
     db.select({ slug: t.modelos.slug, linea: t.modelos.linea }).from(t.modelos).where(eq(t.modelos.visible, true)).orderBy(asc(t.modelos.orden)),
-    db.select({ nombre: t.configuracion.asesoraNombre }).from(t.configuracion).limit(1),
+    db.select({ nombre: t.configuracion.asesoraNombre, publico: t.configuracion.asesoraNombrePublico }).from(t.configuracion).limit(1),
   ]);
   const estadisticas: Estadisticas = Object.fromEntries(porOrigen.map((o) => [o.origen, { recientes: o.recientes, vendidas: o.vendidas }]));
-  return <PanelCompartir base={base} primerNombre={conf ? nombreDeAsesora(conf.nombre).primero : "Natalia"} modelos={modelos} estadisticas={estadisticas} />;
+  return <PanelCompartir base={base} primerNombre={conf ? nombreDeAsesora(conf.nombre, conf.publico).primero : "Natalia"} modelos={modelos} estadisticas={estadisticas} />;
 }

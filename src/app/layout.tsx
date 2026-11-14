@@ -22,8 +22,8 @@ const sans = Source_Sans_3({
 });
 
 export const metadata: Metadata = {
-  title: "Estrena tu Suzuki con Natalia García | Fersautos Cúcuta",
-  description: "Catálogo Suzuki y solicitud de crédito en línea con Natalia García, Fersautos sede Diagonal Santander.",
+  title: "Estrena tu Suzuki con Natalia Sierra | Fersautos Cúcuta",
+  description: "Catálogo Suzuki y solicitud de crédito en línea con Natalia Sierra, Fersautos sede Diagonal Santander.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

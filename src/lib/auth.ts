@@ -20,7 +20,7 @@ const ipDe = (headers?: Headers | null) =>
   headers?.get("x-forwarded-for")?.split(",")[0]?.trim() || headers?.get("x-real-ip") || null;
 
 export const auth = betterAuth({
-  appName: "Fersautos · Natalia García",
+  appName: "Fersautos · Natalia Sierra",
   baseURL: process.env.BETTER_AUTH_URL,
   secret: process.env.BETTER_AUTH_SECRET,
 

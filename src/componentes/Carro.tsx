@@ -34,16 +34,8 @@ const FORMAS: Record<Carroceria, { cuerpo: string; vidrios: string; ruedas: [num
   },
 };
 
-export const COLORES = [
-  { nombre: "Blanco", hex: "#F2F3F5" },
-  { nombre: "Gris", hex: "#8B929C" },
-  { nombre: "Rojo", hex: "#B8312F" },
-  { nombre: "Azul", hex: "#2F5DA8" },
-  { nombre: "Negro", hex: "#262A31" },
-] as const;
-
-/** Color inicial estable para cada modelo (no aleatorio: igual en servidor y navegador). */
-export const colorDe = (slug: string) => COLORES[[...slug].reduce((a, c) => a + c.charCodeAt(0), 0) % COLORES.length].hex;
+/** Gris neutro para la ilustración de los modelos que todavía no tienen colores cargados. */
+export const NEUTRO = "#8B929C";
 
 export function Carro({ tipo, color, className }: { tipo: Carroceria; color: string; className?: string }) {
   const f = FORMAS[tipo] ?? FORMAS.hatchback;

@@ -46,7 +46,7 @@ export function GestorColores({ modeloId, colores }: { modeloId: string; colores
   return (
     <div className="rounded-xl border border-linea bg-superficie p-4">
       {colores.length === 0 ? (
-        <p className="text-texto-2">Sin colores: la ficha del catálogo muestra los colores de la ilustración y dice que dependen del inventario.</p>
+        <p className="text-texto-2">Sin colores: el catálogo muestra la ilustración en gris y le dice al cliente que pregunte por los colores.</p>
       ) : (
         <ul className="flex flex-wrap gap-2.5" aria-label="Colores del modelo">
           {colores.map((c, i) => (

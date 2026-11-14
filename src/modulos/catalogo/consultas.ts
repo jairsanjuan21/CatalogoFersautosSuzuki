@@ -143,26 +143,15 @@ export async function modeloPorSlug(slug: string) {
   };
 }
 
-/** Todas las versiones visibles, para elegir en el comparador */
-export async function versionesParaComparar() {
-  const modelos = await db.select(columnas).from(t.modelos).where(eq(t.modelos.visible, true)).orderBy(asc(t.modelos.orden));
-  const versiones = await versionesDe(modelos.map((m) => m.id));
-  return versiones.flatMap((v) => {
-    const modelo = modelos.find((m) => m.id === v.modeloId);
-    return modelo ? [{ ...v, modelo }] : [];
-  });
-}
-
-export type VersionComparable = Awaited<ReturnType<typeof versionesParaComparar>>[number];
 
 /** Lo que el público ve de Natalia (nunca su cédula ni datos internos). */
 export async function datosAsesora() {
   const [c] = await db
-    .select({ nombre: t.configuracion.asesoraNombre, foto: t.configuracion.asesoraFoto, whatsapp: t.configuracion.asesoraWhatsapp, frase: t.configuracion.asesoraFrase, sede: t.configuracion.sede, ciudad: t.configuracion.ciudad })
+    .select({ nombre: t.configuracion.asesoraNombre, publico: t.configuracion.asesoraNombrePublico, foto: t.configuracion.asesoraFoto, whatsapp: t.configuracion.asesoraWhatsapp, frase: t.configuracion.asesoraFrase, sede: t.configuracion.sede, ciudad: t.configuracion.ciudad })
     .from(t.configuracion)
     .limit(1);
   if (!c) return null;
-  const { visible, primero } = nombreDeAsesora(c.nombre);
+  const { visible, primero } = nombreDeAsesora(c.nombre, c.publico);
   return { nombre: visible, primerNombre: primero, foto: c.foto, whatsapp: c.whatsapp, frase: c.frase, sede: c.sede, ciudad: c.ciudad };
 }
 

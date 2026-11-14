@@ -36,7 +36,7 @@ const MODELOS = [
 async function datosBase() {
   await db
     .insert(t.configuracion)
-    .values({ id: 1, asesoraNombre: "Dayerly Natalia Garcia Sierra", asesoraCc: "1094044975", sede: "Diagonal Santander" })
+    .values({ id: 1, asesoraNombre: "Dayerly Natalia Garcia Sierra", asesoraNombrePublico: "Natalia Sierra", asesoraCc: "1094044975", sede: "Diagonal Santander" })
     .onConflictDoNothing();
 
   await db

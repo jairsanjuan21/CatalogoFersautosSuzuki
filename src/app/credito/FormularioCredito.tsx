@@ -15,7 +15,7 @@ import {
   pasoReferencias,
   pasoVehiculo,
 } from "@/validacion/solicitud";
-import { escribir, leer, nombreDeAsesora, plata } from "@/lib/formato";
+import { escribir, leer, plata } from "@/lib/formato";
 import { resolverOrigen } from "@/lib/origen";
 import {
   Chips,
@@ -39,7 +39,7 @@ import { FotoCedula, type Foto } from "./FotoCedula";
    ========================================================================== */
 
 export interface ConfigFormulario {
-  asesoraNombre: string;
+  asesoraNombre: string; // el nombre público ("Natalia Sierra"), no el completo
   asesoraWhatsapp: string | null;
   sede: string;
   ciudad: string;
@@ -345,7 +345,7 @@ export function FormularioCredito({ config, origenRecordado }: { config: ConfigF
           nombre={String(estado.datos.personal?.nombres ?? "").split(" ")[0]}
           celular={String(estado.datos.contacto?.celular ?? "")}
           whatsapp={config.asesoraWhatsapp}
-          asesora={nombreDeAsesora(config.asesoraNombre).primero}
+          asesora={config.asesoraNombre.split(" ")[0]}
         />
       </>
     );
@@ -866,7 +866,7 @@ function Casilla({ id, marcada, alCambiar, error, children }: { id: string; marc
    ========================================================================== */
 
 function Asesora({ nombre, sede }: { nombre: string; sede: string }) {
-  const corto = nombreDeAsesora(nombre).visible;
+  const corto = nombre; // ya llega con el nombre público
   const iniciales = corto.split(" ").map((p) => p[0]).slice(0, 2).join("");
   return (
     <div className="flex items-center gap-3.5 pt-5 pb-1.5">

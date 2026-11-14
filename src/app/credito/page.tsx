@@ -7,6 +7,7 @@ import { asc, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { clausulas, configuracion, modelos } from "@/db/esquema";
 import { FormularioCredito } from "./FormularioCredito";
+import { nombreDeAsesora } from "@/lib/formato";
 
 export const metadata: Metadata = {
   title: "Solicita tu crédito Suzuki | Fersautos Cúcuta",
@@ -47,7 +48,8 @@ async function Cargar() {
     <FormularioCredito
       origenRecordado={origenRecordado}
       config={{
-        asesoraNombre: conf.asesoraNombre,
+        // Al navegador solo va el nombre con que la conocen; el completo es para el PDF, en el servidor
+        asesoraNombre: nombreDeAsesora(conf.asesoraNombre, conf.asesoraNombrePublico).visible,
         asesoraWhatsapp: conf.asesoraWhatsapp,
         sede: conf.sede,
         ciudad: conf.ciudad,

@@ -24,6 +24,7 @@ function Campo({ id, etiqueta, error, ayuda, children, ancho }: { id: string; et
 
 export interface Config {
   asesoraNombre: string;
+  asesoraNombrePublico: string | null;
   asesoraCc: string;
   ciudad: string;
   sede: string;
@@ -148,6 +149,9 @@ export function FormularioConfiguracion({ c }: { c: Config }) {
       <div className="grid gap-3.5 rounded-xl border border-linea bg-superficie p-4 sm:grid-cols-2">
         <Campo id="asesoraNombre" etiqueta="Nombre completo (campo “Asesor”)" error={err.asesoraNombre} ancho>
           <input id="asesoraNombre" name="asesoraNombre" defaultValue={c.asesoraNombre} maxLength={80} className={claseInput} aria-invalid={!!err.asesoraNombre} />
+        </Campo>
+        <Campo id="asesoraNombrePublico" etiqueta="Nombre con el que la conocen los clientes" error={err.asesoraNombrePublico} ayuda="Es el que se ve en el catálogo y en el formulario. Ej: Natalia Sierra" ancho>
+          <input id="asesoraNombrePublico" name="asesoraNombrePublico" defaultValue={c.asesoraNombrePublico ?? ""} maxLength={40} placeholder="Natalia Sierra" className={claseInput} aria-invalid={!!err.asesoraNombrePublico} />
         </Campo>
         <Campo id="asesoraCc" etiqueta="C.C. de la asesora" error={err.asesoraCc} ayuda={cc ? `En el PDF: ${Number(cc).toLocaleString("es-CO")}` : undefined}>
           <input id="asesoraCc" name="asesoraCc" inputMode="numeric" maxLength={11} value={cc} onChange={(e) => setCc(e.target.value.replace(/\D/g, ""))} className={claseInput} aria-invalid={!!err.asesoraCc} />

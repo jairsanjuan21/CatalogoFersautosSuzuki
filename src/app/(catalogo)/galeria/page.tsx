@@ -6,7 +6,7 @@ import { fotosPublicas, SECCIONES } from "@/modulos/galeria/consultas";
 import { FotosEntregas } from "../FotosEntregas";
 
 export const metadata: Metadata = {
-  title: "Familia Suzuki y clientes felices | Natalia García, Fersautos",
+  title: "Familia Suzuki y clientes felices | Natalia Sierra, Fersautos",
   description: "Fotos de las entregas de los clientes que estrenaron su Suzuki con Natalia en Cúcuta.",
 };
 

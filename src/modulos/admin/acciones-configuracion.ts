@@ -11,6 +11,11 @@ import type { ResultadoAdmin } from "./acciones-catalogo";
 
 const esquema = z.object({
   asesoraNombre: z.string().trim().min(5, { error: "Escribe el nombre completo." }).max(80),
+  asesoraNombrePublico: z
+    .string()
+    .trim()
+    .max(40, { error: "Máximo 40 caracteres." })
+    .transform((v) => v || null),
   asesoraCc: z.string().trim().regex(/^\d{6,11}$/, { error: "Entre 6 y 11 dígitos, sin puntos." }),
   ciudad: z.string().trim().min(2).max(40),
   sede: z.string().trim().min(2, { error: "Escribe la sede." }).max(60),

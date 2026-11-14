@@ -190,7 +190,8 @@ export const configuracion = pgTable(
   "configuracion",
   {
     id: smallint().primaryKey().default(1),
-    asesoraNombre: text().notNull(),
+    asesoraNombre: text().notNull(), // nombre completo, tal como va en el formato F-NS-01
+    asesoraNombrePublico: text(), // como la conocen los clientes ("Natalia Sierra"); null = se arma del completo
     asesoraCc: text().notNull(),
     asesoraWhatsapp: text(),
     asesoraFrase: text().notNull().default("Te acompaño en todo el proceso para que estrenes tu Suzuki."),

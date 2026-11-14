@@ -22,13 +22,14 @@ export function escribir<T>(obj: T, ruta: string, valor: unknown): T {
 }
 
 /**
- * "Dayerly Natalia Garcia Sierra" → { visible: "Natalia Garcia", primero: "Natalia" }.
- * Con cuatro palabras (dos nombres y dos apellidos) se usa el segundo nombre,
- * que es como ella se presenta a sus clientes.
+ * Nombre con el que la asesora aparece ante los clientes.
+ * Si el admin escribió el "nombre público" en Configuración (ej. "Natalia Sierra"), se usa ese.
+ * Si no, se arma con el nombre completo: con cuatro palabras, segundo nombre y primer apellido.
+ * El nombre completo solo se usa tal cual en el formato F-NS-01.
  */
-export function nombreDeAsesora(completo: string) {
+export function nombreDeAsesora(completo: string, publico?: string | null) {
   const p = completo.trim().split(/\s+/);
-  const visible = p.length >= 4 ? `${p[1]} ${p[2]}` : p.length === 3 ? `${p[0]} ${p[1]}` : completo;
+  const visible = publico?.trim() || (p.length >= 4 ? `${p[1]} ${p[2]}` : p.length === 3 ? `${p[0]} ${p[1]}` : completo);
   return { visible, primero: visible.split(" ")[0] };
 }
 

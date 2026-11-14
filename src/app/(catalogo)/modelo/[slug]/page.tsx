@@ -2,7 +2,6 @@ import { Suspense } from "react";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { colorDe } from "@/componentes/Carro";
 import { enlaceWhatsapp, nombreVersion, plata, TRANSMISIONES } from "@/lib/formato";
 import { datosAsesora, modeloPorSlug } from "@/modulos/catalogo/consultas";
 import { COMBUSTIBLE_TEXTO, fechaLarga, TIPO_TEXTO } from "../../textos";
@@ -77,7 +76,7 @@ async function Contenido({ params }: { params: Params }) {
           )}
         </div>
       ) : (
-        <SelectorColor tipo={m.tipo} colorInicial={colorDe(m.slug)} colores={m.colores} />
+        <SelectorColor tipo={m.tipo} colores={m.colores} />
       )}
       <div>
         <h1 className="font-display text-[clamp(44px,8vw,68px)] leading-[.95] font-extrabold">{m.linea}</h1>
@@ -135,11 +134,6 @@ async function Contenido({ params }: { params: Params }) {
               Precios con IVA{actualizado ? `, actualizados el ${fechaLarga(actualizado)}` : ""}.
               {m.versiones.some((v) => v.deLista) && " Los marcados como precio de lista son los de Suzuki antes de bonos: pregunta por el valor de hoy."}
             </p>
-          )}
-          {m.versiones.length > 1 && (
-            <Link href={`/comparar?v=${m.versiones.slice(0, 2).map((v) => v.id).join(",")}`} className="mt-2 inline-block text-sm font-semibold text-azul-texto underline-offset-2 hover:underline">
-              Comparar versiones
-            </Link>
           )}
           {m.promocion && (
             <p className="mt-2.5 rounded-lg bg-senal-fondo px-3 py-2.5 text-[15px] text-senal">

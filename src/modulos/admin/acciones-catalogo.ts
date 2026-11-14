@@ -295,7 +295,9 @@ export async function sugerirDescripcion(modeloId: string, campos: Record<string
   if (!permitir(`ia-descripcion:${usuarioId}`, 15, 60 * 60 * 1000)) return { ok: false, mensaje: "Pediste muchas descripciones seguidas. Intenta en un rato." };
 
   // Tope mensual: el plan gratuito de Gemini tiene límites; esto evita gastarlos sin querer
-  const tope = Number(process.env.IA_USOS_MES ?? 200);
+  // Vacío, cero o algo que no sea número = el valor por defecto (antes un "IA_USOS_MES=" vacío dejaba el tope en 0)
+  const configurado = Number(process.env.IA_USOS_MES);
+  const tope = Number.isInteger(configurado) && configurado > 0 ? configurado : 200;
   const [{ usados }] = await db
     .select({ usados: count() })
     .from(t.auditoria)

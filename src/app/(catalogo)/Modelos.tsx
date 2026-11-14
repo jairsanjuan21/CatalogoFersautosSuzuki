@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Carro, colorDe, type Carroceria } from "@/componentes/Carro";
+import { Carro, NEUTRO, type Carroceria } from "@/componentes/Carro";
 import { plata } from "@/lib/formato";
 
 export interface TarjetaModelo {
@@ -121,7 +121,7 @@ export function Modelos({ modelos }: { modelos: TarjetaModelo[] }) {
                 // eslint-disable-next-line @next/next/no-img-element -- fotos ya optimizadas en WebP con srcset
                 <img src={m.foto.src} srcSet={m.foto.srcSet} sizes="(min-width: 640px) 33vw, 100vw" alt={`Suzuki ${m.linea}`} loading="lazy" className="absolute inset-0 size-full object-cover" />
               ) : (
-                <Carro tipo={m.tipo} color={colorDe(m.slug)} className="w-4/5" />
+                <Carro tipo={m.tipo} color={m.colores[0]?.hex ?? NEUTRO} className="w-4/5" />
               )}
             </div>
             <div className="flex flex-1 flex-col gap-0.5 px-4 pt-3.5 pb-4">

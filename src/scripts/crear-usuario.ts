@@ -9,7 +9,7 @@ import * as t from "@/db/esquema";
 /**
  * Crea una cuenta o le asigna una contraseña nueva.
  *
- *   npm run usuario:crear -- --nombre "Natalia García" --correo natalia@correo.com --rol asesora
+ *   npm run usuario:crear -- --nombre "Natalia Sierra" --correo natalia@correo.com --rol asesora
  *   npm run usuario:crear -- --correo natalia@correo.com --nueva-clave
  *
  * La contraseña se genera al azar y se muestra UNA sola vez.
