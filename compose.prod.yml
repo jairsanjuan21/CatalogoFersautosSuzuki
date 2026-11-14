@@ -1,0 +1,64 @@
+# Producción en el VPS.  Uso:
+#   docker compose -f compose.prod.yml up -d --build
+#   docker compose -f compose.prod.yml run --rm herramientas npm run db:migrate
+name: fersautos
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      TZ: America/Bogota
+      PGTZ: America/Bogota
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [interna]          # sin "ports": la base NO queda expuesta a internet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    deploy:
+      resources:
+        limits: { memory: 512m }
+
+  app:
+    build: { context: ., target: runner }
+    image: fersautos-app:latest
+    restart: unless-stopped
+    env_file: .env.production
+    depends_on:
+      db: { condition: service_healthy }
+    volumes:
+      - archivos:/app/almacenamiento   # cédulas, firmas y fotos: deben sobrevivir a cada despliegue
+    networks:
+      interna: {}
+      proxy:
+        aliases: [fersautos-app]      # nombre con el que Caddy encuentra la app
+    deploy:
+      resources:
+        limits: { memory: 1g }
+
+  # Contenedor de un solo uso para migraciones, semilla y scripts de consola.
+  herramientas:
+    build: { context: ., target: herramientas }
+    image: fersautos-herramientas:latest
+    profiles: [herramientas]          # no arranca con "up", solo con "run"
+    env_file: .env.production
+    environment:
+      NODE_ENV: production
+    depends_on:
+      db: { condition: service_healthy }
+    volumes:
+      - archivos:/app/almacenamiento
+    networks: [interna]
+
+networks:
+  interna: {}
+  proxy:
+    external: true                    # la crea el proxy (Caddy), compartida entre proyectos
+
+volumes:
+  pgdata: {}
+  archivos: {}
