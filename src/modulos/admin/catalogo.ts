@@ -33,7 +33,7 @@ export async function listarModelosAdmin() {
 export async function modeloAdmin(id: string) {
   const [modelo] = await db.select().from(t.modelos).where(eq(t.modelos.id, id));
   if (!modelo) return null;
-  const [fotos, versiones, [{ solicitudes }]] = await Promise.all([
+  const [fotos, versiones, [{ solicitudes }], colores] = await Promise.all([
     db.select().from(t.fotosModelo).where(eq(t.fotosModelo.modeloId, id)).orderBy(asc(t.fotosModelo.orden)),
     db
       .select({ id: t.versiones.id, nombre: t.versiones.nombre, transmision: t.versiones.transmision, visible: t.versiones.visible, orden: t.versiones.orden, precioBase: t.versiones.precioBase, precioBaseActualizado: t.versiones.precioBaseActualizado, precios: count(t.precios.id) })
@@ -43,6 +43,11 @@ export async function modeloAdmin(id: string) {
       .groupBy(t.versiones.id)
       .orderBy(asc(t.versiones.orden), asc(t.versiones.nombre)),
     db.select({ solicitudes: count() }).from(t.solicitudes).where(eq(t.solicitudes.modeloId, id)),
+    db
+      .select({ id: t.coloresModelo.id, nombre: t.coloresModelo.nombre, hex: t.coloresModelo.hex })
+      .from(t.coloresModelo)
+      .where(eq(t.coloresModelo.modeloId, id))
+      .orderBy(asc(t.coloresModelo.orden), asc(t.coloresModelo.creadoEn)),
   ]);
-  return { ...modelo, fotos, versiones, solicitudes };
+  return { ...modelo, fotos, versiones, solicitudes, colores };
 }

@@ -21,6 +21,7 @@ export interface ModeloEditable {
   descripcion: string | null;
   orden: number;
   visible: boolean;
+  mostrarPrecio: boolean;
 }
 
 /**
@@ -158,6 +159,10 @@ export function FormularioModelo({ m }: { m: ModeloEditable }) {
           <label className="flex min-h-11 cursor-pointer items-center gap-2.5 font-semibold">
             <input type="checkbox" name="visible" defaultChecked={m.visible} className="size-5 accent-azul" />
             Visible en el catálogo
+          </label>
+          <label className="flex min-h-11 cursor-pointer items-center gap-2.5 font-semibold">
+            <input type="checkbox" name="mostrarPrecio" defaultChecked={m.mostrarPrecio} className="size-5 accent-azul" />
+            Mostrar precios en el catálogo
           </label>
         </div>
       </div>

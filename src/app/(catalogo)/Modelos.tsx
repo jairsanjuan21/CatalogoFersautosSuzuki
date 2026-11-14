@@ -15,6 +15,8 @@ export interface TarjetaModelo {
   combustible: "gasolina" | "hibrido" | "electrico" | null;
   transmisiones: ("mecanica" | "automatica")[];
   nuevoPrecio: boolean;
+  versionEntrada: string | null; // "GL mecánica": la del precio que se muestra
+  colores: { nombre: string; hex: string }[];
   promocion: string | null;
   foto: { src: string; srcSet: string } | null;
 }
@@ -125,11 +127,19 @@ export function Modelos({ modelos }: { modelos: TarjetaModelo[] }) {
             <div className="flex flex-1 flex-col gap-0.5 px-4 pt-3.5 pb-4">
               <h3 className="font-display text-[26px] leading-tight font-bold">{m.linea}</h3>
               <span className="text-sm text-texto-2">{m.tipoTexto}, {m.puestos} puestos</span>
+              {m.colores.length > 0 && (
+                <span className="mt-1.5 flex items-center gap-1" aria-label={`Colores: ${m.colores.map((c) => c.nombre).join(", ")}`}>
+                  {m.colores.slice(0, 6).map((c) => (
+                    <span key={c.nombre} title={c.nombre} className="size-4 rounded-full border border-linea-2" style={{ background: c.hex }} />
+                  ))}
+                  {m.colores.length > 6 && <span className="ml-0.5 text-xs text-texto-2">+{m.colores.length - 6}</span>}
+                </span>
+              )}
               {m.precio ? (
                 <span className="mt-auto pt-3 font-semibold">
                   Desde {plata(m.precio)}
                   {m.nuevoPrecio && <span className="ml-2 inline-block rounded bg-cielo px-1.5 py-0.5 align-middle text-xs whitespace-nowrap text-azul-texto">Nuevo precio</span>}
-                  <small className="block text-[13px] font-normal text-texto-2">Precio con IVA, según versión</small>
+                  <small className="block text-[13px] font-normal text-texto-2">{m.versionEntrada ? `Versión ${m.versionEntrada}, con IVA` : "Precio con IVA, según versión"}</small>
                 </span>
               ) : (
                 <span className="mt-auto pt-3 font-semibold text-azul-texto">

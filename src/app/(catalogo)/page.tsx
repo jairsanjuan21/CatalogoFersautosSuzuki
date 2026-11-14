@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { datosAsesora, modelosCatalogo } from "@/modulos/catalogo/consultas";
 import { atributosFoto } from "@/modulos/fotos/fotos";
+import { nombreVersion } from "@/lib/formato";
 import { Modelos, type TarjetaModelo } from "./Modelos";
 import { FotosEntregas } from "./FotosEntregas";
 import { fotosPublicas, fotosRecientes, SECCIONES } from "@/modulos/galeria/consultas";
@@ -56,6 +57,8 @@ async function Contenido() {
     combustible: m.combustible,
     transmisiones: m.transmisiones,
     nuevoPrecio: m.nuevoPrecio,
+    versionEntrada: m.versionEntrada ? nombreVersion(m.versionEntrada) : null,
+    colores: m.colores.map(({ nombre, hex }) => ({ nombre, hex })),
     promocion: m.promocion ? textoPromocion(m.promocion) : null,
     foto: m.portada ? atributosFoto(m.portada) : null,
   }));

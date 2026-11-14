@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { colorDe } from "@/componentes/Carro";
-import { enlaceWhatsapp, plata, TRANSMISIONES } from "@/lib/formato";
+import { enlaceWhatsapp, nombreVersion, plata, TRANSMISIONES } from "@/lib/formato";
 import { datosAsesora, modeloPorSlug } from "@/modulos/catalogo/consultas";
 import { COMBUSTIBLE_TEXTO, fechaLarga, TIPO_TEXTO } from "../../textos";
 import { SelectorColor } from "./SelectorColor";
@@ -53,12 +53,31 @@ async function Contenido({ params }: { params: Params }) {
     ["Tipo", TIPO_TEXTO[m.tipo]],
   ];
 
+  const fechas = m.versiones.flatMap((v) => (v.actualizado && !v.deLista ? [v.actualizado.getTime()] : []));
+  const actualizado = fechas.length ? new Date(Math.max(...fechas)) : null;
+
   return (
     <div className="mt-2.5 grid items-start gap-5 md:grid-cols-[1.25fr_1fr] md:gap-8">
       {m.fotos.length ? (
-        <Galeria linea={m.linea} fotos={m.fotos.map((f) => atributosFoto(f.clave, "(min-width: 768px) 55vw, 100vw"))} />
+        <div>
+          <Galeria linea={m.linea} fotos={m.fotos.map((f) => atributosFoto(f.clave, "(min-width: 768px) 55vw, 100vw"))} />
+          {m.colores.length > 0 && (
+            <div className="mt-4">
+              <p className="mb-2 text-sm font-semibold">Colores disponibles</p>
+              <ul className="flex flex-wrap gap-x-4 gap-y-2.5">
+                {m.colores.map((c) => (
+                  <li key={c.nombre} className="flex items-center gap-2 text-[15px]">
+                    <span aria-hidden className="size-6 rounded-full border border-linea-2" style={{ background: c.hex }} />
+                    {c.nombre}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-[13px] text-texto-2">Confirma la disponibilidad de cada color.</p>
+            </div>
+          )}
+        </div>
       ) : (
-        <SelectorColor tipo={m.tipo} colorInicial={colorDe(m.slug)} />
+        <SelectorColor tipo={m.tipo} colorInicial={colorDe(m.slug)} colores={m.colores} />
       )}
       <div>
         <h1 className="font-display text-[clamp(44px,8vw,68px)] leading-[.95] font-extrabold">{m.linea}</h1>
@@ -68,7 +87,16 @@ async function Contenido({ params }: { params: Params }) {
         {m.descripcion && <p className="mt-3.5">{m.descripcion}</p>}
 
         <div className="mt-5 rounded-xl border border-linea bg-superficie p-4">
-          {m.precio ? (
+          {m.entrada ? (
+            <>
+              <small className="text-sm text-texto-2">Versión de entrada</small>
+              <p className="font-semibold">
+                {nombreVersion(m.entrada)}
+                {m.entrada.nuevoPrecio && <Etiqueta />}
+              </p>
+              <Precio v={m.entrada} grande />
+            </>
+          ) : m.precio ? (
             <>
               <small className="text-sm text-texto-2">Desde</small>
               <b className="font-display block text-[34px] leading-tight">{plata(m.precio)}</b>
@@ -80,40 +108,38 @@ async function Contenido({ params }: { params: Params }) {
               <small className="text-sm text-texto-2">Los precios cambian seguido. Escríbeme y te doy el valor de hoy.</small>
             </>
           )}
-          {m.versiones.length > 0 && (
-            <div className="mt-4 border-t border-linea pt-3">
-              <p className="mb-1.5 text-sm font-semibold">Versiones</p>
+          {m.otras.length > 0 && (
+            <details open={!m.entrada} className="group mt-4 border-t border-linea pt-3">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 font-semibold text-azul-texto [&::-webkit-details-marker]:hidden">
+                {m.entrada ? `Ver ${m.otras.length === 1 ? "la otra versión" : `las otras ${m.otras.length} versiones`}` : "Versiones"}
+                <svg viewBox="0 0 24 24" aria-hidden className="size-5 flex-none fill-none stroke-current stroke-2 transition-transform group-open:rotate-180 [stroke-linecap:round] [stroke-linejoin:round]">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </summary>
               <ul className="divide-y divide-linea">
-                {m.versiones.map((v) => (
-                  <li key={v.nombre + v.transmision} className="flex items-baseline justify-between gap-3 py-2">
+                {m.otras.map((v) => (
+                  <li key={v.id} className="flex items-baseline justify-between gap-3 py-2">
                     <span>
                       {v.nombre}
                       {v.transmision && <span className="ml-1.5 text-sm text-texto-2">{TRANSMISIONES[v.transmision]}</span>}
-                      {v.nuevoPrecio && <span className="ml-1.5 rounded bg-cielo px-1.5 py-0.5 text-xs font-semibold whitespace-nowrap text-azul-texto">Nuevo precio</span>}
+                      {v.nuevoPrecio && <Etiqueta />}
                     </span>
-                    {v.precio ? (
-                      <span className="text-right whitespace-nowrap">
-                        {v.base && v.base > v.precio && <s className="mr-1.5 text-sm text-texto-2">{plata(v.base)}</s>}
-                        <span className="font-semibold">{plata(v.precio)}</span>
-                        {v.base && v.base > v.precio && <small className="block text-[13px] font-semibold text-ok">Bono de marca {plata(v.base - v.precio)}</small>}
-                      </span>
-                    ) : (
-                      <span className="text-sm whitespace-nowrap text-azul-texto">A consultar</span>
-                    )}
+                    <Precio v={v} />
                   </li>
                 ))}
               </ul>
-              {m.versiones.some((v) => v.precio) && (
-                <p className="mt-1 text-[13px] text-texto-2">
-                  Precios con IVA, actualizados el {fechaLarga(new Date(Math.max(...m.versiones.filter((v) => v.actualizado).map((v) => v.actualizado!.getTime()))))}.
-                </p>
-              )}
-              {m.versiones.length > 1 && (
-                <Link href={`/comparar?v=${m.versiones.slice(0, 2).map((v) => v.id).join(",")}`} className="mt-2 inline-block text-sm font-semibold text-azul-texto underline-offset-2 hover:underline">
-                  Comparar versiones
-                </Link>
-              )}
-            </div>
+            </details>
+          )}
+          {m.versiones.some((v) => v.precio) && (
+            <p className="mt-2 text-[13px] text-texto-2">
+              Precios con IVA{actualizado ? `, actualizados el ${fechaLarga(actualizado)}` : ""}.
+              {m.versiones.some((v) => v.deLista) && " Los marcados como precio de lista son los de Suzuki antes de bonos: pregunta por el valor de hoy."}
+            </p>
+          )}
+          {m.versiones.length > 1 && (
+            <Link href={`/comparar?v=${m.versiones.slice(0, 2).map((v) => v.id).join(",")}`} className="mt-2 inline-block text-sm font-semibold text-azul-texto underline-offset-2 hover:underline">
+              Comparar versiones
+            </Link>
           )}
           {m.promocion && (
             <p className="mt-2.5 rounded-lg bg-senal-fondo px-3 py-2.5 text-[15px] text-senal">
@@ -162,5 +188,20 @@ async function Contenido({ params }: { params: Params }) {
         <p className="mt-2 text-[13px] text-texto-2">Ficha de referencia. Confirma la versión y el equipamiento con {asesora.primerNombre}.</p>
       </div>
     </div>
+  );
+}
+
+const Etiqueta = () => <span className="ml-1.5 inline-block rounded bg-cielo px-1.5 py-0.5 align-middle text-xs font-semibold whitespace-nowrap text-azul-texto">Nuevo precio</span>;
+
+/** Precio de una versión: con el de lista tachado y el bono si lo hay, o "precio de lista" si es el único que hay */
+function Precio({ v, grande }: { v: { precio: number | null; base: number | null; deLista: boolean }; grande?: boolean }) {
+  if (!v.precio) return <span className="text-sm whitespace-nowrap text-azul-texto">A consultar</span>;
+  return (
+    <span className={grande ? "block" : "text-right whitespace-nowrap"}>
+      {v.base && <s className="mr-1.5 text-sm text-texto-2">{plata(v.base)}</s>}
+      <span className={grande ? "font-display text-[34px] leading-tight font-bold" : "font-semibold"}>{plata(v.precio)}</span>
+      {v.base && <small className="block text-[13px] font-semibold text-ok">Bono de marca {plata(v.base - v.precio)}</small>}
+      {v.deLista && <small className="block text-[13px] text-texto-2">Precio de lista</small>}
+    </span>
   );
 }

@@ -55,6 +55,7 @@ const esquemaModelo = z.object({
   descripcion: z.string().trim().max(140, { error: "Máximo 140 caracteres." }).transform((v) => v || null),
   orden: z.coerce.number().int().min(0).max(99),
   visible: z.preprocess((v) => v === "on", z.boolean()),
+  mostrarPrecio: z.preprocess((v) => v === "on", z.boolean()),
 });
 
 export async function guardarModelo(_previo: ResultadoAdmin, formulario: FormData): Promise<ResultadoAdmin> {
@@ -326,4 +327,65 @@ export async function sugerirDescripcion(modeloId: string, campos: Record<string
     console.error("Error pidiendo descripciones a la IA", e);
     return { ok: false, mensaje: "La IA no pudo escribir la descripción. Intenta de nuevo." };
   }
+}
+
+/* ---------- colores del modelo ---------- */
+
+const MAX_COLORES = 12;
+const esquemaColor = z.object({
+  modeloId: uuid,
+  nombre: z.string().trim().min(1, { error: "Escribe el nombre del color." }).max(30, { error: "Máximo 30 caracteres." }),
+  hex: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^#[0-9a-f]{6}$/, { error: "Elige el color." }),
+});
+
+export async function agregarColor(_previo: ResultadoAdmin, formulario: FormData): Promise<ResultadoAdmin> {
+  const { usuarioId, ip, actor } = await exigirGestorCatalogo();
+  const r = esquemaColor.safeParse(Object.fromEntries(formulario));
+  if (!r.success) return { ok: false, errores: erroresPorCampo(r.error) };
+  const { modeloId, nombre, hex } = r.data;
+  const [m] = await db.select({ linea: t.modelos.linea }).from(t.modelos).where(eq(t.modelos.id, modeloId));
+  if (!m) return { ok: false, mensaje: "El modelo no existe." };
+  const [{ n, ultimo }] = await db.select({ n: count(), ultimo: max(t.coloresModelo.orden) }).from(t.coloresModelo).where(eq(t.coloresModelo.modeloId, modeloId));
+  if (n >= MAX_COLORES) return { ok: false, mensaje: `Máximo ${MAX_COLORES} colores por modelo.` };
+  const nuevo = await db
+    .insert(t.coloresModelo)
+    .values({ modeloId, nombre, hex, orden: (ultimo ?? -1) + 1 })
+    .onConflictDoNothing()
+    .returning({ id: t.coloresModelo.id });
+  if (!nuevo.length) return { ok: false, errores: { nombre: "Ese color ya está en la lista." } };
+  await db.insert(t.auditoria).values({ actor, usuarioId, accion: "Agregó un color", entidad: "modelos", entidadId: m.linea, ip, detalle: { nombre, hex } });
+  refresh();
+  return { ok: true, mensaje: `${nombre} agregado.` };
+}
+
+export async function quitarColor(colorId: string): Promise<ResultadoAdmin> {
+  const { usuarioId, ip, actor } = await exigirGestorCatalogo();
+  if (!uuid.safeParse(colorId).success) return { ok: false, mensaje: "Datos no válidos." };
+  const [c] = await db.delete(t.coloresModelo).where(eq(t.coloresModelo.id, colorId)).returning({ nombre: t.coloresModelo.nombre, modeloId: t.coloresModelo.modeloId });
+  if (!c) return { ok: false, mensaje: "Ese color ya no está." };
+  await db.insert(t.auditoria).values({ actor, usuarioId, accion: "Quitó un color", entidad: "modelos", entidadId: c.modeloId, ip, detalle: { nombre: c.nombre } });
+  refresh();
+  return { ok: true };
+}
+
+/** Mueve un color un puesto a la izquierda (-1) o a la derecha (1). El primero es el que se ve primero. */
+export async function moverColor(colorId: string, direccion: -1 | 1): Promise<ResultadoAdmin> {
+  await exigirGestorCatalogo();
+  if (!uuid.safeParse(colorId).success || (direccion !== -1 && direccion !== 1)) return { ok: false, mensaje: "Datos no válidos." };
+  const [c] = await db.select().from(t.coloresModelo).where(eq(t.coloresModelo.id, colorId));
+  if (!c) return { ok: false, mensaje: "Ese color ya no está." };
+  const todos = await db.select({ id: t.coloresModelo.id }).from(t.coloresModelo).where(eq(t.coloresModelo.modeloId, c.modeloId)).orderBy(asc(t.coloresModelo.orden), asc(t.coloresModelo.creadoEn));
+  const i = todos.findIndex((x) => x.id === colorId);
+  const j = i + direccion;
+  if (j < 0 || j >= todos.length) return { ok: true };
+  [todos[i], todos[j]] = [todos[j], todos[i]];
+  await db.transaction(async (tx) => {
+    for (const [orden, x] of todos.entries()) await tx.update(t.coloresModelo).set({ orden }).where(eq(t.coloresModelo.id, x.id));
+  });
+  refresh();
+  return { ok: true };
 }

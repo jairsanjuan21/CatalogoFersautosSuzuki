@@ -274,6 +274,27 @@ export const fotosModelo = pgTable(
   (t) => [uniqueIndex("fotos_modelo_orden_unico").on(t.modeloId, t.orden)],
 );
 
+/** Colores en que se consigue cada modelo. Los define Natalia o el admin en el editor del modelo. */
+export const coloresModelo = pgTable(
+  "colores_modelo",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    modeloId: uuid()
+      .notNull()
+      .references(() => modelos.id, { onDelete: "cascade" }),
+    nombre: text().notNull(), // "Rojo Fuego"
+    hex: text().notNull(), // "#b3261e", para pintar la muestra
+    orden: smallint().notNull().default(0),
+    creadoEn: creadoEn(),
+  },
+  (t) => [
+    unique("colores_modelo_nombre").on(t.modeloId, t.nombre),
+    check("colores_modelo_hex", sql`${t.hex} ~ '^#[0-9a-f]{6}$'`),
+    check("colores_modelo_nombre_corto", sql`char_length(${t.nombre}) between 1 and 30`),
+    index("colores_modelo_orden").on(t.modeloId, t.orden),
+  ],
+);
+
 /**
  * Versiones de cada modelo (ej: Fronx GL mecánica, Fronx GLX automática).
  * Cada versión tiene dos precios:

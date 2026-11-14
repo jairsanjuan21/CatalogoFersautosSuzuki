@@ -40,7 +40,7 @@ async function Contenido({ searchParams }: { searchParams: Busqueda }) {
   const modelos = [...new Map(todas.map((x) => [x.modelo.id, x.modelo.linea])).entries()];
 
   const filas: [string, (x: VersionComparable) => React.ReactNode][] = [
-    ["Precio de hoy", (x) => (x.precio ? <b className="text-[17px] whitespace-nowrap">{plata(x.precio)}</b> : <span className="text-azul-texto">A consultar</span>)],
+    ["Precio", (x) => (x.precio ? <><b className="text-[17px] whitespace-nowrap">{plata(x.precio)}</b>{x.deLista && <small className="block text-[13px] text-texto-2">Precio de lista</small>}</> : <span className="text-azul-texto">A consultar</span>)],
     ["Bono de marca", (x) => (x.precio && x.base && x.base > x.precio ? <span className="font-semibold whitespace-nowrap text-ok">{plata(x.base - x.precio)}</span> : "—")],
     ["Transmisión", (x) => (x.transmision ? TRANSMISIONES[x.transmision].replace(/^./, (l) => l.toUpperCase()) : "—")],
     ["Combustible", (x) => (x.modelo.combustible ? COMBUSTIBLE_TEXTO[x.modelo.combustible] : "—")],

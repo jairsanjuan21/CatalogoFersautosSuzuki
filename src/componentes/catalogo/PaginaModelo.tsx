@@ -5,6 +5,7 @@ import { FormularioModelo, GestorFotos } from "./EditorModelo";
 import { GestorVersiones } from "./Versiones";
 import { ZonaPeligro } from "./ZonaPeligro";
 import { EditorVideo } from "./EditorVideo";
+import { GestorColores } from "./Colores";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -33,7 +34,14 @@ export async function PaginaModelo({ id }: { id: string }) {
       <h2 className="font-display mt-7 mb-2.5 text-[22px] font-semibold">Video</h2>
       <EditorVideo modeloId={m.id} videoActual={m.videoYoutube} />
       <h2 className="font-display mt-7 mb-2.5 text-[22px] font-semibold">Versiones</h2>
+      {!m.mostrarPrecio && (
+        <p className="mb-2.5 rounded-lg bg-ambar-fondo px-3.5 py-2.5 text-sm text-ambar">
+          Los precios de este modelo están <b>ocultos</b> en el catálogo: el cliente ve “Precio a consultar”. Actívalos en <b>Datos del modelo → Mostrar precios en el catálogo</b>.
+        </p>
+      )}
       <GestorVersiones modeloId={m.id} versiones={m.versiones} />
+      <h2 className="font-display mt-7 mb-2.5 text-[22px] font-semibold">Colores</h2>
+      <GestorColores modeloId={m.id} colores={m.colores} />
       <h2 className="font-display mt-7 mb-2.5 text-[22px] font-semibold">Datos del modelo</h2>
       {/* Sin "key" a propósito: con una key que cambie al guardar, React desmontaría
           el formulario y se perdería el mensaje de "Modelo guardado". */}

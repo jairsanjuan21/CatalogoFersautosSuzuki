@@ -120,6 +120,13 @@
       "when": 1794696143544,
       "tag": "0016_vista_precios_con_lista",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794698900291,
+      "tag": "0017_colores_modelo",
+      "breakpoints": true
     }
   ]
 }

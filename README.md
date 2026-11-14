@@ -120,7 +120,17 @@ Cada modelo tiene un **precio base** fijo (el "Desde" del catálogo) y varias **
   La diferencia se muestra como *bono de marca* en el catálogo.
 
 Una versión con historial de precios no se puede borrar: se oculta, para no perder ese historial.
-Si un modelo no tiene "Desde", el catálogo muestra el menor precio de hoy de sus versiones.
+
+**Qué ve el cliente:** el precio del modelo es el de su **versión de entrada** (la más económica con
+precio); en la ficha aparece primero esa versión y las demás quedan en "Ver las otras versiones".
+Cada versión muestra su precio de hoy (con el de lista tachado y el bono, si lo hay); si no tiene
+precio de hoy vigente, muestra su precio base marcado como "precio de lista". El "Desde" del modelo
+solo se usa si ninguna versión tiene precio. Nada de esto se ve si el modelo tiene apagado
+**Mostrar precios en el catálogo** (Catálogo → modelo → Datos del modelo, o Panel → Precios).
+
+**Colores:** cada modelo tiene su lista de colores (Catálogo → modelo → Colores), con nombre y tono,
+en el orden en que se muestran. Sin fotos, la ilustración de la ficha se pinta con esos colores;
+con fotos, aparecen como "Colores disponibles" debajo de la galería. Las tarjetas muestran puntos.
 En cada solicitud, Natalia elige **modelo y versión**; el PDF muestra ambos en el campo "Línea".
 
 ## Lista de precios de Suzuki en Excel
