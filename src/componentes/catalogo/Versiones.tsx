@@ -3,6 +3,7 @@
 import { startTransition, useActionState, useState, useTransition, type FormEvent } from "react";
 import { borrarVersion, guardarVersion, type ResultadoAdmin } from "@/modulos/admin/acciones-catalogo";
 import { useFormularioAccion } from "@/lib/usar-formulario";
+import { plata } from "@/lib/formato";
 
 const claseInput =
   "min-h-10 w-full rounded-lg border border-linea-2 bg-superficie px-2.5 text-[15px] outline-none focus:border-azul focus:ring-2 focus:ring-azul/40 aria-invalid:border-senal";
@@ -14,10 +15,14 @@ export interface VersionEditable {
   transmision: "mecanica" | "automatica" | null;
   visible: boolean;
   orden: number;
+  precioBase: number | null;
   precios: number;
 }
 
-function Campos({ v, error }: { v?: VersionEditable; error?: string }) {
+type Errores = { nombre?: string; precioBase?: string };
+
+function Campos({ v, errores }: { v?: VersionEditable; errores?: Errores }) {
+  const error = errores?.nombre;
   return (
     <>
       <div className="min-w-0 flex-[2_1_160px]">
@@ -29,7 +34,25 @@ function Campos({ v, error }: { v?: VersionEditable; error?: string }) {
         <option value="mecanica">Mecánica</option>
         <option value="automatica">Automática</option>
       </select>
-      <input name="orden" type="number" min={0} max={99} defaultValue={v?.orden ?? 0} aria-label="Orden" className={`${claseInput} w-16 flex-none`} />
+      <div className="min-w-0 flex-[1_1_150px]">
+        <input
+          name="precioBase"
+          inputMode="numeric"
+          defaultValue={v?.precioBase ? plata(v.precioBase) : ""}
+          // Se reescribe con puntos de mil mientras se teclea; el servidor se queda solo con los dígitos
+          onChange={(e) => {
+            const d = e.currentTarget.value.replace(/\D/g, "").slice(0, 10);
+            e.currentTarget.value = d ? plata(Number(d)) : "";
+          }}
+          placeholder="Precio base"
+          aria-label="Precio base (Precio Referencia de Suzuki)"
+          title="Precio Referencia de la lista de Suzuki, antes del bono de marca"
+          aria-invalid={!!errores?.precioBase}
+          className={`${claseInput} text-right`}
+        />
+        {errores?.precioBase && <p className="mt-1 text-[13px] text-senal">{errores.precioBase}</p>}
+      </div>
+      <input name="orden" type="number" min={0} max={99} defaultValue={v?.orden ?? 0} aria-label="Orden" title="Orden en la lista" className={`${claseInput.replace("w-full ", "")} w-16 flex-none text-center`} />
       <label className="flex min-h-10 flex-none items-center gap-1.5 text-sm">
         <input type="checkbox" name="visible" defaultChecked={v?.visible ?? true} className="size-4 accent-azul" />
         Visible
@@ -52,7 +75,7 @@ function FilaVersion({ modeloId, v }: { modeloId: string; v: VersionEditable }) 
       <form onSubmit={enviar} className="flex flex-wrap items-start gap-2">
         <input type="hidden" name="id" value={v.id} />
         <input type="hidden" name="modeloId" value={modeloId} />
-        <Campos v={v} error={estado.errores?.nombre} />
+        <Campos v={v} errores={estado.errores} />
         <button disabled={guardando} className="min-h-10 rounded-lg border border-linea-2 bg-superficie px-3 text-sm font-semibold disabled:opacity-60">
           {guardando ? "…" : "Guardar"}
         </button>
@@ -66,7 +89,7 @@ function FilaVersion({ modeloId, v }: { modeloId: string; v: VersionEditable }) 
           Borrar
         </button>
       </form>
-      <p className="mt-1 text-[13px] text-texto-2">{v.precios ? `${v.precios} precios en su historial` : "Sin precios todavía"}</p>
+      <p className="mt-1 text-[13px] text-texto-2">{v.precios ? `${v.precios} ${v.precios === 1 ? "precio" : "precios"} en su historial` : "Sin precios todavía"}</p>
       {(estado.mensaje || aviso) && <p role="status" className={`mt-1 text-sm ${estado.ok && !aviso?.includes("ocúltala") ? "text-ok" : "text-senal"}`}>{aviso ?? estado.mensaje}</p>}
     </li>
   );
@@ -77,7 +100,8 @@ export function GestorVersiones({ modeloId, versiones }: { modeloId: string; ver
   return (
     <div className="rounded-xl border border-linea bg-superficie p-4">
       <p className="text-[15px] text-texto-2">
-        Cada versión tiene su propio precio, que se actualiza en la sección Precios. El precio base (“Desde”) también se maneja allí.
+        El <b>precio base</b> de cada versión es el “Precio Referencia” de la lista de Suzuki, antes del bono de marca: cambia poco.
+        El precio del día (“Precio Venta Público”) se actualiza en Precios, y la diferencia se muestra como bono de marca.
       </p>
       {versiones.length === 0 && <p className="mt-3 font-semibold text-ambar">Este modelo no tiene versiones: Natalia no puede cargarle precios.</p>}
       <ul className="mt-2 divide-y divide-linea">
@@ -88,7 +112,7 @@ export function GestorVersiones({ modeloId, versiones }: { modeloId: string; ver
         <input type="hidden" name="id" value="" />
         <input type="hidden" name="modeloId" value={modeloId} />
         <div className="flex flex-wrap items-start gap-2">
-          <Campos error={estado.errores?.nombre} />
+          <Campos errores={estado.errores} />
           <button disabled={pendiente} className="min-h-10 rounded-lg bg-azul px-3 text-sm font-semibold text-white disabled:opacity-60">
             {pendiente ? "Agregando…" : "Agregar"}
           </button>

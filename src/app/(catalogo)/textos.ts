@@ -8,3 +8,5 @@ export const fechaLarga = (d: Date) =>
 
 export const textoPromocion = (p: { descripcion: string; valorBono: number | null }) =>
   p.valorBono ? `Bono de $ ${p.valorBono.toLocaleString("es-CO")}` : p.descripcion;
+
+export const COMBUSTIBLE_TEXTO = { gasolina: "Gasolina", hibrido: "Híbrido", electrico: "Eléctrico" } as const;

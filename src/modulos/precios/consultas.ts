@@ -22,6 +22,7 @@ export async function preciosParaPanel() {
             modeloId: t.versiones.modeloId,
             nombre: t.versiones.nombre,
             transmision: t.versiones.transmision,
+            base: t.versiones.precioBase,
             precio: t.preciosVigentes.precioLista,
             vigenteDesde: t.preciosVigentes.vigenteDesde,
             desactualizado: t.preciosVigentes.desactualizado,

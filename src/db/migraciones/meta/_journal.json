@@ -99,6 +99,27 @@
       "when": 1794587776901,
       "tag": "0013_meta_ventas",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1794695592859,
+      "tag": "0014_precio_base_versiones",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1794696136319,
+      "tag": "0015_catalogo_oficial",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794696143544,
+      "tag": "0016_vista_precios_con_lista",
+      "breakpoints": true
     }
   ]
 }

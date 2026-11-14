@@ -53,6 +53,9 @@ async function Contenido() {
     tipoTexto: TIPO_TEXTO[m.tipo],
     puestos: m.puestos,
     precio: m.precio,
+    combustible: m.combustible,
+    transmisiones: m.transmisiones,
+    nuevoPrecio: m.nuevoPrecio,
     promocion: m.promocion ? textoPromocion(m.promocion) : null,
     foto: m.portada ? atributosFoto(m.portada) : null,
   }));
@@ -108,7 +111,12 @@ async function Contenido() {
 
       <div id="modelos" className="mt-10 scroll-mt-4">
         <h2 className="font-display text-4xl leading-none font-bold">Modelos disponibles</h2>
-        <p className="mt-1.5 text-texto-2">Precios actualizados por {asesora.primerNombre}. Si no ves el precio, escríbeme y te cotizo al día.</p>
+        <p className="mt-1.5 text-texto-2">
+          Precios actualizados por {asesora.primerNombre}. Si no ves el precio, escríbeme y te cotizo al día.{" "}
+          <Link href="/comparar" className="font-semibold text-azul-texto underline-offset-2 hover:underline">
+            Comparar versiones
+          </Link>
+        </p>
       </div>
       <Modelos modelos={tarjetas} />
 

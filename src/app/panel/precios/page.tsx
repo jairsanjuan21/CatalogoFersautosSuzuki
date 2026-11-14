@@ -5,7 +5,7 @@ import { nombreVersion, plata } from "@/lib/formato";
 import { preciosParaPanel, promocionesParaPanel } from "@/modulos/precios/consultas";
 import { Cargando, Titulo } from "../componentes";
 import { FormularioPromocion, QuitarPromocion, TablaPrecios, type ModeloPrecios } from "./clientes";
-import { LectorPdf } from "./LectorPdf";
+import { ImportadorExcel } from "./ImportadorExcel";
 import { SubnavCatalogo } from "../SubnavCatalogo";
 import { TIPO_VEHICULO } from "@/lib/formato";
 
@@ -37,6 +37,7 @@ async function Contenido() {
     versiones: m.versiones.map((v) => ({
       id: v.id,
       etiqueta: nombreVersion(v),
+      base: v.base,
       precio: v.precio,
       desactualizado: !!v.desactualizado,
       actualizado: v.vigenteDesde ? haceCuanto(v.vigenteDesde) : "",
@@ -48,8 +49,8 @@ async function Contenido() {
 
   return (
     <>
-      <h2 className="font-display mt-7 mb-2.5 text-[22px] font-semibold">Subir lista de precios en PDF</h2>
-      <LectorPdf />
+      <h2 className="font-display mt-7 mb-2.5 text-[22px] font-semibold">Subir la lista de precios de Suzuki</h2>
+      <ImportadorExcel />
 
       <h2 className="font-display mt-7 mb-2.5 text-[22px] font-semibold">Precios de hoy</h2>
       <TablaPrecios modelos={tablas} diasVigencia={diasVigencia} />

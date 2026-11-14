@@ -6,8 +6,8 @@ import { nombreDeAsesora } from "@/lib/formato";
 
 /**
  * REGLAS DEL CATÁLOGO
- * - Precio base ("Desde $..."): se muestra si Natalia dejó activo "Mostrar precio"
- *   y lo tiene cargado. Es fijo, no se vence.
+ * - "Desde $...": se muestra si Natalia dejó activo "Mostrar precio". Es el menor entre
+ *   el precio base del modelo y los precios de hoy publicables de sus versiones.
  * - Precio de cada versión: además debe estar vigente (no más días de los
  *   configurados sin actualizar). Si no, la versión aparece "a consultar".
  */
@@ -21,6 +21,7 @@ const columnas = {
   transmision: t.modelos.transmision,
   descripcion: t.modelos.descripcion,
   videoYoutube: t.modelos.videoYoutube,
+  combustible: t.modelos.combustible,
   precio: sql<number | null>`case when ${t.modelos.mostrarPrecio} then ${t.modelos.precioBase} end`.mapWith((v) => (v === null ? null : Number(v))),
 };
 
@@ -29,11 +30,16 @@ async function versionesDe(modeloIds: string[]) {
   if (!modeloIds.length) return [];
   return db
     .select({
+      id: t.versiones.id,
       modeloId: t.versiones.modeloId,
       nombre: t.versiones.nombre,
       transmision: t.versiones.transmision,
       precio: sql<number | null>`case when ${t.modelos.mostrarPrecio} and not coalesce(${t.preciosVigentes.desactualizado}, true)
         then ${t.preciosVigentes.precioLista} end`.mapWith((v) => (v === null ? null : Number(v))),
+      // El precio base solo se muestra junto a un precio del día publicable (para enseñar el bono)
+      base: sql<number | null>`case when ${t.modelos.mostrarPrecio} and not coalesce(${t.preciosVigentes.desactualizado}, true)
+        then ${t.versiones.precioBase} end`.mapWith((v) => (v === null ? null : Number(v))),
+      nuevoPrecio: sql<boolean>`coalesce(${t.preciosVigentes.nuevoPrecio} and ${t.modelos.mostrarPrecio} and not ${t.preciosVigentes.desactualizado}, false)`,
       actualizado: t.preciosVigentes.vigenteDesde,
     })
     .from(t.versiones)
@@ -60,17 +66,33 @@ async function fotosDe(modeloIds: string[]) {
     .orderBy(asc(t.fotosModelo.orden));
 }
 
+/**
+ * "Desde": el menor entre el precio base del modelo y la versión más económica con precio publicable.
+ * Así el catálogo nunca dice "Desde" un valor mayor que el de una versión que sí se vende más barata
+ * (pasa cuando llega una lista nueva y el "Desde" quedó con el valor viejo).
+ */
+const desde = (precio: number | null, versiones: { precio: number | null }[]) =>
+  versiones.reduce<number | null>((min, v) => (v.precio && (min === null || v.precio < min) ? v.precio : min), precio);
+
 export async function modelosCatalogo() {
   const [modelos, promociones] = await Promise.all([
     db.select(columnas).from(t.modelos).where(eq(t.modelos.visible, true)).orderBy(asc(t.modelos.orden)),
     promocionesVigentes(),
   ]);
-  const fotos = await fotosDe(modelos.map((m) => m.id));
-  return modelos.map((m) => ({
-    ...m,
-    promocion: promociones.find((p) => p.modeloId === m.id) ?? null,
-    portada: fotos.find((f) => f.modeloId === m.id)?.clave ?? null,
-  }));
+  const ids = modelos.map((m) => m.id);
+  const [fotos, versiones] = await Promise.all([fotosDe(ids), versionesDe(ids)]);
+  return modelos.map((m) => {
+    const suyas = versiones.filter((v) => v.modeloId === m.id);
+    return {
+      ...m,
+      precio: desde(m.precio, suyas),
+      // Para los filtros del catálogo
+      transmisiones: [...new Set(suyas.flatMap((v) => (v.transmision ? [v.transmision] : [])))],
+      nuevoPrecio: suyas.some((v) => v.nuevoPrecio),
+      promocion: promociones.find((p) => p.modeloId === m.id) ?? null,
+      portada: fotos.find((f) => f.modeloId === m.id)?.clave ?? null,
+    };
+  });
 }
 
 export type ModeloCatalogo = Awaited<ReturnType<typeof modelosCatalogo>>[number];
@@ -82,8 +104,20 @@ export async function modeloPorSlug(slug: string) {
     .where(and(eq(t.modelos.slug, slug), eq(t.modelos.visible, true)));
   if (!modelo) return null;
   const [promociones, fotos, versiones] = await Promise.all([promocionesVigentes(), fotosDe([modelo.id]), versionesDe([modelo.id])]);
-  return { ...modelo, promocion: promociones.find((p) => p.modeloId === modelo.id) ?? null, fotos, versiones };
+  return { ...modelo, precio: desde(modelo.precio, versiones), promocion: promociones.find((p) => p.modeloId === modelo.id) ?? null, fotos, versiones };
 }
+
+/** Todas las versiones visibles, para elegir en el comparador */
+export async function versionesParaComparar() {
+  const modelos = await db.select(columnas).from(t.modelos).where(eq(t.modelos.visible, true)).orderBy(asc(t.modelos.orden));
+  const versiones = await versionesDe(modelos.map((m) => m.id));
+  return versiones.flatMap((v) => {
+    const modelo = modelos.find((m) => m.id === v.modeloId);
+    return modelo ? [{ ...v, modelo }] : [];
+  });
+}
+
+export type VersionComparable = Awaited<ReturnType<typeof versionesParaComparar>>[number];
 
 /** Lo que el público ve de Natalia (nunca su cédula ni datos internos). */
 export async function datosAsesora() {

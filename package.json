@@ -21,9 +21,9 @@
     "retencion": "tsx --conditions=react-server src/scripts/retencion.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^1.8.0",
     "better-auth": "^1.7.18",
     "drizzle-orm": "^0.45.4",
+    "exceljs": "^4.4.0",
     "next": "16.4.5",
     "pdf-lib": "^1.17.1",
     "pg": "^8.23.1",

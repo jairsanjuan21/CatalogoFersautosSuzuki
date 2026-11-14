@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { colorDe } from "@/componentes/Carro";
 import { enlaceWhatsapp, plata, TRANSMISIONES } from "@/lib/formato";
 import { datosAsesora, modeloPorSlug } from "@/modulos/catalogo/consultas";
-import { fechaLarga, TIPO_TEXTO } from "../../textos";
+import { COMBUSTIBLE_TEXTO, fechaLarga, TIPO_TEXTO } from "../../textos";
 import { SelectorColor } from "./SelectorColor";
 import { Galeria } from "./Galeria";
 import { Video } from "./Video";
@@ -47,6 +47,7 @@ async function Contenido({ params }: { params: Params }) {
   const mensaje = `Hola ${asesora.primerNombre}, me interesa el Suzuki ${m.linea}. ¿Me das más información?`;
   const ficha: [string, string | number | null][] = [
     ["Motor", m.motor],
+    ["Combustible", m.combustible ? COMBUSTIBLE_TEXTO[m.combustible] : null],
     ["Transmisión", m.transmision],
     ["Puestos", m.puestos],
     ["Tipo", TIPO_TEXTO[m.tipo]],
@@ -71,7 +72,7 @@ async function Contenido({ params }: { params: Params }) {
             <>
               <small className="text-sm text-texto-2">Desde</small>
               <b className="font-display block text-[34px] leading-tight">{plata(m.precio)}</b>
-              <small className="text-sm text-texto-2">Precio base con IVA. El valor final depende de la versión.</small>
+              <small className="text-sm text-texto-2">Precio con IVA. El valor final depende de la versión.</small>
             </>
           ) : (
             <>
@@ -88,8 +89,17 @@ async function Contenido({ params }: { params: Params }) {
                     <span>
                       {v.nombre}
                       {v.transmision && <span className="ml-1.5 text-sm text-texto-2">{TRANSMISIONES[v.transmision]}</span>}
+                      {v.nuevoPrecio && <span className="ml-1.5 rounded bg-cielo px-1.5 py-0.5 text-xs font-semibold whitespace-nowrap text-azul-texto">Nuevo precio</span>}
                     </span>
-                    <span className={`whitespace-nowrap ${v.precio ? "font-semibold" : "text-sm text-azul-texto"}`}>{v.precio ? plata(v.precio) : "A consultar"}</span>
+                    {v.precio ? (
+                      <span className="text-right whitespace-nowrap">
+                        {v.base && v.base > v.precio && <s className="mr-1.5 text-sm text-texto-2">{plata(v.base)}</s>}
+                        <span className="font-semibold">{plata(v.precio)}</span>
+                        {v.base && v.base > v.precio && <small className="block text-[13px] font-semibold text-ok">Bono de marca {plata(v.base - v.precio)}</small>}
+                      </span>
+                    ) : (
+                      <span className="text-sm whitespace-nowrap text-azul-texto">A consultar</span>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -97,6 +107,11 @@ async function Contenido({ params }: { params: Params }) {
                 <p className="mt-1 text-[13px] text-texto-2">
                   Precios con IVA, actualizados el {fechaLarga(new Date(Math.max(...m.versiones.filter((v) => v.actualizado).map((v) => v.actualizado!.getTime()))))}.
                 </p>
+              )}
+              {m.versiones.length > 1 && (
+                <Link href={`/comparar?v=${m.versiones.slice(0, 2).map((v) => v.id).join(",")}`} className="mt-2 inline-block text-sm font-semibold text-azul-texto underline-offset-2 hover:underline">
+                  Comparar versiones
+                </Link>
               )}
             </div>
           )}

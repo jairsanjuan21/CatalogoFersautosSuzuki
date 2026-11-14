@@ -36,7 +36,7 @@ export async function modeloAdmin(id: string) {
   const [fotos, versiones, [{ solicitudes }]] = await Promise.all([
     db.select().from(t.fotosModelo).where(eq(t.fotosModelo.modeloId, id)).orderBy(asc(t.fotosModelo.orden)),
     db
-      .select({ id: t.versiones.id, nombre: t.versiones.nombre, transmision: t.versiones.transmision, visible: t.versiones.visible, orden: t.versiones.orden, precios: count(t.precios.id) })
+      .select({ id: t.versiones.id, nombre: t.versiones.nombre, transmision: t.versiones.transmision, visible: t.versiones.visible, orden: t.versiones.orden, precioBase: t.versiones.precioBase, precioBaseActualizado: t.versiones.precioBaseActualizado, precios: count(t.precios.id) })
       .from(t.versiones)
       .leftJoin(t.precios, eq(t.precios.versionId, t.versiones.id))
       .where(eq(t.versiones.modeloId, id))

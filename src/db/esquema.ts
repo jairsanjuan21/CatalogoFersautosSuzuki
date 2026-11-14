@@ -93,7 +93,9 @@ export const tipoArchivo = pgEnum("tipo_archivo", [
   "pdf_formulario",
   "pdf_cedula",
 ]);
-export const origenPrecio = pgEnum("origen_precio", ["manual", "pdf_ia"]);
+// pdf_ia queda por el historial: así se cargaban antes los precios
+export const origenPrecio = pgEnum("origen_precio", ["manual", "pdf_ia", "excel"]);
+export const combustible = pgEnum("combustible", ["gasolina", "hibrido", "electrico"]);
 export const transmision = pgEnum("transmision", ["mecanica", "automatica"]);
 export const metodoComision = pgEnum("metodo_comision", ["proporcional", "millones_completos"]);
 export const formaPago = pgEnum("forma_pago", ["contado", "credito"]);
@@ -237,6 +239,7 @@ export const modelos = pgTable(
     puestos: smallint().notNull(),
     motor: text(),
     transmision: text(),
+    combustible: combustible(), // para los filtros del catálogo; null = sin definir
     descripcion: text(),
     visible: boolean().notNull().default(false), // nace oculto hasta que esté completo
     archivado: boolean().notNull().default(false), // ya no se vende, pero solicitudes viejas lo usan
@@ -273,7 +276,10 @@ export const fotosModelo = pgTable(
 
 /**
  * Versiones de cada modelo (ej: Fronx GL mecánica, Fronx GLX automática).
- * Cada versión tiene su propio precio, que cambia seguido.
+ * Cada versión tiene dos precios:
+ *  - precio base: el "Precio Referencia" de la lista de Suzuki, antes del bono de marca. Cambia poco.
+ *  - precio del día: el "Precio Venta Público" (ya con el bono), en la tabla precios con su historial.
+ * El bono de marca es la diferencia entre los dos.
  */
 export const versiones = pgTable(
   "versiones",
@@ -284,13 +290,22 @@ export const versiones = pgTable(
       .references(() => modelos.id, { onDelete: "cascade" }),
     nombre: text().notNull(), // "GL 1.2", "GLX 1.5 Hybrid"
     transmision: transmision(), // null = no aplica o no se especifica
+    precioBase: pesos(), // "Precio Referencia" de Suzuki; null = aún no se ha cargado
+    precioBaseActualizado: timestamp({ withTimezone: true }),
+    // Texto exacto de la fila en el Excel de Suzuki ("JIMNY 5P GLX MT"). Con él, las
+    // siguientes listas se emparejan solas. No se usa el código del modelo porque Suzuki lo repite.
+    nombreLista: text(),
+    anioModelo: smallint(),
     visible: boolean().notNull().default(true),
     orden: smallint().notNull().default(0),
     creadoEn: creadoEn(),
   },
   (t) => [
+    check("versiones_precio_base_positivo", sql`${t.precioBase} is null or ${t.precioBase} > 0`),
     // NULLS NOT DISTINCT: sin esto, dos versiones con el mismo nombre y sin transmisión no chocarían
     unique("versiones_unica").on(t.modeloId, t.nombre, t.transmision).nullsNotDistinct(),
+    uniqueIndex("versiones_nombre_lista").on(t.nombreLista),
+    check("versiones_anio_modelo", sql`${t.anioModelo} is null or ${t.anioModelo} between 2000 and 2100`),
     index("versiones_modelo").on(t.modeloId, t.orden),
   ],
 );
@@ -309,13 +324,34 @@ export const precios = pgTable(
     versionId: uuid()
       .notNull()
       .references(() => versiones.id, { onDelete: "cascade" }),
-    loteId: uuid(), // agrupa los precios que llegaron en un mismo PDF
+    loteId: uuid(), // agrupa los precios de una misma carga; si vino de un Excel, es el id de listas_precios
+    nuevoPrecio: boolean().notNull().default(false), // la lista de Suzuki lo marca como "Nuevo precio"
     usuarioId: text().references(() => user.id, { onDelete: "set null" }),
   },
   (t) => [
     check("precios_positivo", sql`${t.precioLista} > 0`),
     index("precios_version_reciente").on(t.versionId, t.vigenteDesde.desc()),
   ],
+);
+
+/**
+ * Cada lista de precios de Suzuki que se cargó desde Excel.
+ * Su "vigente hasta" manda sobre los días de vigencia de la configuración:
+ * al día siguiente, el catálogo muestra esos precios "a consultar".
+ */
+export const listasPrecios = pgTable(
+  "listas_precios",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    numero: text(), // "41"
+    fecha: date(), // fecha de la lista
+    vigenteHasta: date(),
+    archivo: text().notNull(),
+    versiones: smallint().notNull(), // cuántos precios se publicaron
+    usuarioId: text().references(() => user.id, { onDelete: "set null" }),
+    creadoEn: creadoEn(),
+  },
+  (t) => [check("listas_precios_vigencia", sql`${t.vigenteHasta} is null or ${t.fecha} is null or ${t.vigenteHasta} >= ${t.fecha}`)],
 );
 
 export const promociones = pgTable(
@@ -716,5 +752,7 @@ export const preciosVigentes = pgView("precios_vigentes", {
   precioLista: pesos().notNull(),
   vigenteDesde: timestamp({ withTimezone: true }).notNull(),
   origen: origenPrecio().notNull(),
+  nuevoPrecio: boolean().notNull(),
+  vigenteHasta: date(), // de la lista de Excel; null si se cargó a mano
   desactualizado: boolean().notNull(),
 }).existing();

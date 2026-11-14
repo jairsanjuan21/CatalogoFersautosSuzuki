@@ -168,32 +168,3 @@ export async function eliminarPromocion(promocionId: string): Promise<ResultadoP
   refresh();
   return { ok: true, mensaje: "Promoción quitada." };
 }
-
-/* ---------- publicar lo que leyó la IA (después de que Natalia lo revisa) ---------- */
-
-const esquemaPublicacion = z
-  .array(z.object({ versionId: z.uuid(), precio: z.number().int().min(PRECIO_MINIMO).max(PRECIO_MAXIMO) }))
-  .min(1, { error: "Selecciona al menos un precio." })
-  .max(50);
-
-export async function publicarPreciosLeidos(seleccion: { versionId: string; precio: number }[], archivo: string): Promise<ResultadoPrecios> {
-  const { usuarioId, ip } = await exigirAsesora();
-  const r = esquemaPublicacion.safeParse(seleccion);
-  if (!r.success) return { ok: false, mensaje: r.error.issues[0]?.message ?? "Datos no válidos." };
-  const ids = r.data.map((s) => s.versionId);
-  const existentes = await db
-    .select({ id: t.versiones.id })
-    .from(t.versiones)
-    .innerJoin(t.modelos, eq(t.modelos.id, t.versiones.modeloId))
-    .where(and(inArray(t.versiones.id, ids), eq(t.modelos.visible, true)));
-  if (existentes.length !== new Set(ids).size) return { ok: false, mensaje: "Alguna versión ya no está en el catálogo. Vuelve a leer el PDF." };
-
-  const lote = randomUUID();
-  const ahora = new Date();
-  await db.transaction(async (tx) => {
-    await tx.insert(t.precios).values(r.data.map((s) => ({ versionId: s.versionId, precioLista: s.precio, vigenteDesde: ahora, origen: "pdf_ia" as const, loteId: lote, usuarioId })));
-    await tx.insert(t.auditoria).values({ actor: "asesora", usuarioId, accion: `Publicó ${r.data.length} precios leídos de un PDF`, entidad: "precios", entidadId: lote, ip, detalle: { archivo: archivo.slice(0, 120) } });
-  });
-  refresh();
-  return { ok: true, mensaje: `${r.data.length} precios publicados.` };
-}

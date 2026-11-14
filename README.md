@@ -112,14 +112,35 @@ cada descarga queda en la auditoría con la huella SHA-256 del archivo.
 ## Modelos, versiones y precios
 
 Cada modelo tiene un **precio base** fijo (el "Desde" del catálogo) y varias **versiones**
-(ej: Swift GL 1.2 mecánica, Swift GLX 1.2 automática), cada una con su propio precio.
+(ej: Jimny 5P GLX mecánica). Cada versión tiene dos precios, igual que la lista de Suzuki:
 
-- El **administrador** crea las versiones en **Admin → Catálogo → (modelo) → Versiones**. Una versión
-  con historial de precios no se puede borrar: se oculta, para no perder ese historial.
-- **Natalia** actualiza el precio base y el de cada versión en **Panel → Precios**. El precio de una
-  versión con más días de los configurados sin actualizar aparece "A consultar" en el catálogo; el
-  precio base no se vence.
-- En cada solicitud, Natalia elige **modelo y versión**; el PDF muestra ambos en el campo "Línea".
+- **Precio base** = "Precio Referencia" (antes del bono de marca). Cambia poco; se edita en
+  Catálogo → (modelo) → Versiones.
+- **Precio de hoy** = "Precio Venta Público". Tiene historial y se actualiza en Panel → Precios.
+  La diferencia se muestra como *bono de marca* en el catálogo.
+
+Una versión con historial de precios no se puede borrar: se oculta, para no perder ese historial.
+Si un modelo no tiene "Desde", el catálogo muestra el menor precio de hoy de sus versiones.
+En cada solicitud, Natalia elige **modelo y versión**; el PDF muestra ambos en el campo "Línea".
+
+## Lista de precios de Suzuki en Excel
+
+En **Panel → Precios**, Natalia sube el `.xlsx` que manda Suzuki cada mes. No usa IA: el código lee
+las columnas "Modelo", "Precio Referencia" y "Precio Venta Público" de cada hoja, la vigencia
+("vigente hasta el 30 de noviembre") y la marca "Nuevo precio". La estrategia de ventas (bonos y
+obsequios) **no** se carga: Natalia la usa en la negociación.
+
+1. Cada fila se empareja con una versión: primero por el texto exacto de la lista (se guarda en
+   `versiones.nombre_lista`), luego por línea, nombre y transmisión. Lo que no existe se propone
+   como versión nueva, o como **modelo nuevo**, que nace oculto hasta tener fotos y descripción.
+2. Natalia revisa la tabla (puede cambiar el destino de cualquier fila) y publica.
+3. Puede ocultar del catálogo las versiones y modelos que la lista ya no trae (no se borra nada).
+
+La **vigencia** manda sobre los días de la configuración: desde el día siguiente al "vigente hasta",
+el catálogo muestra esos precios "a consultar" hasta que se suba la nueva lista. Los precios
+guardados a mano siguen la regla de los días. La lectura es `src/modulos/precios/lista-excel.ts`
+(funciones puras) y `leer-excel.ts`; el código del modelo de Suzuki no se usa como clave porque la
+lista lo repite en versiones distintas.
 
 ## Tema claro, oscuro o del sistema
 
@@ -170,25 +191,18 @@ es decir 0,5 %) y la forma de contar (proporcional o solo millones completos). S
 configuración vigente, así que si cambia, los meses anteriores también se recalculan: es una
 estimación, no la liquidación de Fersautos. La regla está en `src/modulos/ventas/comision.ts`.
 
-## Lectura de precios con IA
+## Descripciones del catálogo con IA
 
-En **Panel → Precios**, Natalia sube el PDF de precios que le llega y el sistema le muestra una
-tabla para confirmar antes de publicar. Por defecto usa **Google Gemini, que tiene plan gratuito**:
+En el editor de cada modelo, **Sugerir con IA** pide a **Google Gemini (plan gratuito)** tres
+descripciones de máximo 140 caracteres con los datos del formulario y las versiones del modelo.
+Natalia elige una, la ajusta si quiere y guarda: nada se publica solo.
 
 1. Entra a <https://aistudio.google.com/apikey> con una cuenta de Google y crea una llave (no pide tarjeta).
-2. En `.env`: `GEMINI_API_KEY=...`
-3. Prueba con `pruebas/lista-precios-ejemplo.pdf`.
+2. En `.env`: `GEMINI_API_KEY=...` (opcional: `IA_MODELO`, `IA_USOS_MES`, por defecto 200 al mes).
 
-La IA solo **extrae** las filas y dice a qué modelo pertenece cada una; el precio "desde" (la versión
-más económica) lo calcula el código. Los cambios mayores al 25 % llegan desmarcados. Sin llave, todo
-lo demás funciona igual y la carga de PDF muestra un aviso.
-
-El proveedor es intercambiable con `IA_PROVEEDOR` (`gemini` o `anthropic`): las instrucciones y el
-esquema son los mismos, solo cambia la función que habla con cada API (`lector-ia.ts`).
-
-Notas del plan gratuito de Gemini: tiene límites de peticiones por minuto y por día (de sobra para
-una o dos listas diarias), y Google puede usar esas peticiones para mejorar sus productos. Por eso
-solo se le envían listas de precios, nunca datos de clientes.
+La IA tiene prohibido inventar cifras o equipamiento y mencionar precios o promociones. Sin llave,
+el botón muestra un aviso y todo lo demás funciona igual. Google puede usar las peticiones del plan
+gratuito para mejorar sus productos: solo se le envían datos del vehículo, nunca de clientes.
 
 ## Fotos del catálogo
 

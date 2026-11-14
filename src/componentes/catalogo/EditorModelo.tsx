@@ -1,7 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useState, useTransition, type FormEvent } from "react";
-import { borrarFotoModelo, guardarModelo, moverFoto, subirFotoModelo, type ResultadoAdmin } from "@/modulos/admin/acciones-catalogo";
+import { borrarFotoModelo, guardarModelo, moverFoto, subirFotoModelo, sugerirDescripcion, type ResultadoAdmin } from "@/modulos/admin/acciones-catalogo";
 import { comprimirImagen } from "@/lib/comprimir-imagen";
 import { aSlug, TIPO_VEHICULO } from "@/lib/formato";
 
@@ -17,6 +17,7 @@ export interface ModeloEditable {
   puestos: number;
   motor: string | null;
   transmision: string | null;
+  combustible: "gasolina" | "hibrido" | "electrico" | null;
   descripcion: string | null;
   orden: number;
   visible: boolean;
@@ -43,7 +44,21 @@ export function FormularioModelo({ m }: { m: ModeloEditable }) {
   const [slug, setSlug] = useState(m.slug);
   const [slugTocado, setSlugTocado] = useState(!m.slug.startsWith("nuevo-modelo-"));
   const [descripcion, setDescripcion] = useState(m.descripcion ?? "");
+  const [opcionesIA, setOpcionesIA] = useState<string[]>([]);
+  const [avisoIA, setAvisoIA] = useState<string>();
+  const [pensando, iniciarIA] = useTransition();
   const err = estado.errores ?? {};
+
+  // La IA usa lo que hay escrito en el formulario, aunque todavía no se haya guardado
+  const pedirIA = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const campos = Object.fromEntries([...new FormData(e.currentTarget.form!)].filter(([, v]) => typeof v === "string")) as Record<string, string>;
+    setAvisoIA(undefined);
+    iniciarIA(async () => {
+      const r = await sugerirDescripcion(m.id, campos).catch(() => ({ ok: false as const, mensaje: "No hay conexión. Intenta de nuevo." }));
+      if (r.ok) setOpcionesIA(r.opciones);
+      else setAvisoIA(r.mensaje);
+    });
+  };
 
   const enviar = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -91,9 +106,50 @@ export function FormularioModelo({ m }: { m: ModeloEditable }) {
         <Campo id="transmision" error={err.transmision} etiqueta="Transmisión">
           <input id="transmision" name="transmision" defaultValue={m.transmision ?? ""} maxLength={60} placeholder="Ej: Mecánica o automática" className={claseInput} />
         </Campo>
+        <Campo id="combustible" error={err.combustible} etiqueta="Combustible">
+          <select id="combustible" name="combustible" defaultValue={m.combustible ?? ""} className={claseInput}>
+            <option value="">Sin definir</option>
+            <option value="gasolina">Gasolina</option>
+            <option value="hibrido">Híbrido</option>
+            <option value="electrico">Eléctrico</option>
+          </select>
+        </Campo>
         <Campo id="descripcion" error={err.descripcion} etiqueta="Descripción corta" ancho>
           <textarea id="descripcion" name="descripcion" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} maxLength={140} aria-invalid={!!err.descripcion} className={`${claseInput} min-h-20 py-2`} />
-          <p className="mt-1 text-right text-[13px] text-texto-2">{descripcion.length}/140</p>
+          <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={pedirIA}
+              disabled={pensando}
+              className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-azul px-3 text-sm font-semibold text-azul-texto hover:bg-cielo disabled:opacity-60"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden className={`size-4 fill-none stroke-current stroke-2 [stroke-linecap:round] [stroke-linejoin:round] ${pensando ? "animate-spin" : ""}`}>
+                <path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z" />
+              </svg>
+              {pensando ? "Escribiendo…" : opcionesIA.length ? "Otras ideas con IA" : "Sugerir con IA"}
+            </button>
+            <p className="text-[13px] text-texto-2">{descripcion.length}/140</p>
+          </div>
+          {avisoIA && <p role="alert" className="mt-2 text-sm text-senal">{avisoIA}</p>}
+          {opcionesIA.length > 0 && (
+            <div className="mt-2 rounded-lg border border-linea bg-superficie-2 p-2.5">
+              <p className="mb-1.5 text-[13px] text-texto-2">Toca una para usarla. Puedes editarla antes de guardar.</p>
+              <ul className="space-y-1.5">
+                {opcionesIA.map((o) => (
+                  <li key={o}>
+                    <button
+                      type="button"
+                      onClick={() => setDescripcion(o)}
+                      aria-pressed={descripcion === o}
+                      className="w-full rounded-lg border border-linea bg-superficie px-3 py-2 text-left text-[15px] hover:border-azul aria-pressed:border-azul aria-pressed:bg-cielo"
+                    >
+                      {o}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </Campo>
         <Campo id="orden" error={err.orden} etiqueta="Orden en el catálogo">
           <input id="orden" name="orden" type="number" min={0} max={99} defaultValue={m.orden} className={claseInput} />

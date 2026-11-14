@@ -2,7 +2,7 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, asc, count, eq, max, ne } from "drizzle-orm";
+import { and, asc, count, eq, gte, max, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import * as t from "@/db/esquema";
@@ -10,6 +10,9 @@ import { baseCatalogo, exigirGestorCatalogo } from "@/lib/autorizacion";
 import { borrarFotoPublica, ErrorFoto, guardarFotoPublica } from "@/modulos/fotos/fotos";
 import { idDeYoutube } from "@/lib/youtube";
 import { erroresPorCampo } from "@/validacion/solicitud";
+import { permitir } from "@/lib/limite";
+import { nombreVersion, TIPO_VEHICULO } from "@/lib/formato";
+import { ErrorIA, sugerirDescripciones } from "@/modulos/ia/descripcion";
 
 export interface ResultadoAdmin {
   ok: boolean;
@@ -48,6 +51,7 @@ const esquemaModelo = z.object({
   puestos: z.coerce.number().int().min(1, { error: "Entre 1 y 9." }).max(9, { error: "Entre 1 y 9." }),
   motor: z.string().trim().max(60).transform((v) => v || null),
   transmision: z.string().trim().max(60).transform((v) => v || null),
+  combustible: z.enum(["", ...t.combustible.enumValues]).transform((v) => (v === "" ? null : v)),
   descripcion: z.string().trim().max(140, { error: "Máximo 140 caracteres." }).transform((v) => v || null),
   orden: z.coerce.number().int().min(0).max(99),
   visible: z.preprocess((v) => v === "on", z.boolean()),
@@ -155,6 +159,16 @@ const esquemaVersion = z.object({
   transmision: z.enum(["", "mecanica", "automatica"]).transform((v) => (v === "" ? null : v)),
   orden: z.coerce.number().int().min(0).max(99),
   visible: z.preprocess((v) => v === "on", z.boolean()),
+  // Llega formateado ("$ 73.990.000"): se dejan solo los dígitos. Vacío = sin precio base.
+  precioBase: z
+    .string()
+    .optional()
+    .transform((v) => {
+      const d = (v ?? "").replace(/\D/g, "").slice(0, 12);
+      return d ? Number(d) : null;
+    })
+    .refine((v) => v === null || v >= 1_000_000, { error: "Revisa el precio base: parece muy bajo." })
+    .refine((v) => v === null || v <= 2_000_000_000, { error: "Revisa el precio base: parece muy alto." }),
 });
 
 export async function guardarVersion(_previo: ResultadoAdmin, formulario: FormData): Promise<ResultadoAdmin> {
@@ -164,10 +178,12 @@ export async function guardarVersion(_previo: ResultadoAdmin, formulario: FormDa
   const { id, ...datos } = r.data;
   try {
     if (id) {
-      const [v] = await db.update(t.versiones).set(datos).where(and(eq(t.versiones.id, id), eq(t.versiones.modeloId, datos.modeloId))).returning({ id: t.versiones.id });
+      // La fecha del precio base solo se mueve si el valor cambió de verdad
+      const fechaBase = sql`case when ${t.versiones.precioBase} is distinct from ${datos.precioBase} then now() else ${t.versiones.precioBaseActualizado} end`;
+      const [v] = await db.update(t.versiones).set({ ...datos, precioBaseActualizado: fechaBase }).where(and(eq(t.versiones.id, id), eq(t.versiones.modeloId, datos.modeloId))).returning({ id: t.versiones.id });
       if (!v) return { ok: false, mensaje: "La versión ya no existe." };
     } else {
-      await db.insert(t.versiones).values(datos);
+      await db.insert(t.versiones).values({ ...datos, precioBaseActualizado: datos.precioBase ? new Date() : null });
     }
   } catch (e) {
     // El índice único (modelo, nombre, transmisión) avisa si ya existe
@@ -249,4 +265,65 @@ export async function guardarVideo(modeloId: string, enlace: string): Promise<Re
   await db.insert(t.auditoria).values({ actor, usuarioId, accion: id ? "Puso el video de un modelo" : "Quitó el video de un modelo", entidad: "modelos", entidadId: m.linea, ip, detalle: { video: id } });
   refresh();
   return { ok: true, mensaje: id ? "Video guardado." : "Video quitado." };
+}
+
+/* ---------- descripción del modelo con IA (Gemini) ---------- */
+
+const ACCION_IA = "Pidió descripciones a la IA";
+const COMBUSTIBLES: Record<string, string> = { gasolina: "gasolina", hibrido: "híbrido", electrico: "eléctrico" };
+
+const esquemaSugerencia = z.object({
+  linea: z.string().trim().min(2, { error: "Escribe primero el nombre de la línea." }).max(40),
+  tipo: z.enum(t.tipoVehiculo.enumValues),
+  puestos: z.coerce.number().int().min(1).max(9),
+  motor: z.string().trim().max(60),
+  transmision: z.string().trim().max(60),
+  combustible: z.string().trim().max(20),
+  descripcion: z.string().trim().max(400),
+});
+
+/**
+ * Propone tres descripciones con los datos que hay en el formulario (aunque no se hayan guardado)
+ * y las versiones visibles del modelo. No guarda nada: Natalia elige y luego guarda el modelo.
+ */
+export async function sugerirDescripcion(modeloId: string, campos: Record<string, string>): Promise<{ ok: true; opciones: string[] } | { ok: false; mensaje: string }> {
+  const { usuarioId, ip, actor } = await exigirGestorCatalogo();
+  if (!uuid.safeParse(modeloId).success) return { ok: false, mensaje: "Datos no válidos." };
+  const r = esquemaSugerencia.safeParse(campos);
+  if (!r.success) return { ok: false, mensaje: r.error.issues[0]?.message ?? "Revisa los datos del modelo." };
+  if (!permitir(`ia-descripcion:${usuarioId}`, 15, 60 * 60 * 1000)) return { ok: false, mensaje: "Pediste muchas descripciones seguidas. Intenta en un rato." };
+
+  // Tope mensual: el plan gratuito de Gemini tiene límites; esto evita gastarlos sin querer
+  const tope = Number(process.env.IA_USOS_MES ?? 200);
+  const [{ usados }] = await db
+    .select({ usados: count() })
+    .from(t.auditoria)
+    .where(and(eq(t.auditoria.accion, ACCION_IA), gte(t.auditoria.creadoEn, sql`date_trunc('month', now() at time zone 'America/Bogota') at time zone 'America/Bogota'`)));
+  if (usados >= tope) return { ok: false, mensaje: `Se alcanzó el tope de ${tope} sugerencias de la IA este mes.` };
+
+  const versiones = await db
+    .select({ nombre: t.versiones.nombre, transmision: t.versiones.transmision })
+    .from(t.versiones)
+    .where(and(eq(t.versiones.modeloId, modeloId), eq(t.versiones.visible, true)))
+    .orderBy(asc(t.versiones.orden), asc(t.versiones.nombre));
+
+  const d = r.data;
+  try {
+    const opciones = await sugerirDescripciones({
+      linea: d.linea,
+      tipo: TIPO_VEHICULO[d.tipo],
+      puestos: d.puestos,
+      motor: d.motor || null,
+      transmision: d.transmision || null,
+      combustible: COMBUSTIBLES[d.combustible] ?? null,
+      versiones: versiones.map(nombreVersion),
+      actual: d.descripcion || null,
+    });
+    await db.insert(t.auditoria).values({ actor, usuarioId, accion: ACCION_IA, entidad: "modelos", entidadId: d.linea, ip });
+    return { ok: true, opciones };
+  } catch (e) {
+    if (e instanceof ErrorIA) return { ok: false, mensaje: e.message };
+    console.error("Error pidiendo descripciones a la IA", e);
+    return { ok: false, mensaje: "La IA no pudo escribir la descripción. Intenta de nuevo." };
+  }
 }

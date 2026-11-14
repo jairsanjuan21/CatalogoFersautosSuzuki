@@ -22,6 +22,7 @@ const soloDigitos = (v: string) => {
 export interface VersionPrecio {
   id: string;
   etiqueta: string; // "GL 1.2 mecánica"
+  base: number | null; // precio de referencia de Suzuki, se edita en Catálogo
   precio: number | null;
   desactualizado: boolean;
   actualizado: string; // "hace 2 días", ya calculado en el servidor
@@ -110,6 +111,7 @@ export function TablaPrecios({ modelos, diasVigencia }: { modelos: ModeloPrecios
                     {v.desactualizado && `. Más de ${diasVigencia} días: el catálogo la muestra “a consultar”`}
                   </p>
                   {v.anterior && <p className="text-[13px] text-texto-2">Antes: {v.anterior}</p>}
+                  <Bono base={v.base} precio={valores[`precio:${v.id}`]} />
                 </div>
                 {Campo(`precio:${v.id}`, `Precio de ${m.linea} ${v.etiqueta}`, v.precio)}
               </div>
@@ -135,6 +137,19 @@ export function TablaPrecios({ modelos, diasVigencia }: { modelos: ModeloPrecios
         <p role="status" className={`mt-3 text-[15px] ${estado.ok ? "text-ok" : hayAvisos ? "text-ambar" : "text-senal"}`}>{estado.mensaje}</p>
       )}
     </form>
+  );
+}
+
+/** Precio base de la versión y el bono que resulta del precio que se está escribiendo. */
+function Bono({ base, precio }: { base: number | null; precio: number | undefined }) {
+  if (!base) return <p className="text-[13px] text-texto-3">Sin precio base: se agrega en Catálogo, en las versiones del modelo.</p>;
+  const bono = precio ? base - precio : 0;
+  return (
+    <p className="text-[13px] text-texto-2">
+      Precio base {plata(base)}
+      {bono > 0 && <span className="font-semibold text-ok"> · bono de marca {plata(bono)}</span>}
+      {bono < 0 && <span className="font-semibold text-ambar"> · ojo: el precio de hoy supera el base</span>}
+    </p>
   );
 }
 
