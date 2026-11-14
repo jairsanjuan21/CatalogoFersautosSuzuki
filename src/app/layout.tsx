@@ -1,7 +1,9 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Barlow_Semi_Condensed, Inter, Source_Sans_3 } from "next/font/google";
 import "./globals.css";
 import { SCRIPT_TEMA } from "@/lib/tema";
+import { Presencia } from "@/componentes/Presencia";
 
 // Las mismas fuentes que aprobó Natalia en los prototipos
 const display = Barlow_Semi_Condensed({
@@ -31,7 +33,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head>
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
       </head>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {children}
+        {/* Latido para el monitor del VPS (usuarios en vivo). No pinta nada. */}
+        <Suspense fallback={null}>
+          <Presencia />
+        </Suspense>
+      </body>
     </html>
   );
 }

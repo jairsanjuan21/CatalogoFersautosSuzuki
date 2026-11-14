@@ -3,6 +3,7 @@ import { ARCHIVOS, erroresPorCampo, esquemaSolicitud } from "@/validacion/solici
 import { crearSolicitud, ErrorSolicitud } from "@/modulos/solicitudes/crear";
 import { ipDeLaPeticion, permitir } from "@/lib/limite";
 import { origenSolicitud } from "@/db/esquema";
+import { COOKIE_PRESENCIA, SID_VALIDO, describirDispositivo, reportarAMetricas } from "@/lib/metricas";
 
 const respuesta = (status: number, cuerpo: object) => NextResponse.json(cuerpo, { status });
 
@@ -72,6 +73,17 @@ export async function POST(request: NextRequest) {
       ip: ip === "desconocida" ? null : ip,
       agenteUsuario: request.headers.get("user-agent"),
     });
+    // Aviso al monitor del VPS: "formulario enviado" (no manda datos del cliente, solo el id de la visita)
+    const sid = request.cookies.get(COOKIE_PRESENCIA)?.value;
+    if (sid && SID_VALIDO.test(sid)) {
+      reportarAMetricas({
+        tipo: "formulario_enviado",
+        sid,
+        ruta: "/credito",
+        rol: "visitante",
+        dispositivo: describirDispositivo(request.headers.get("user-agent")),
+      });
+    }
     return respuesta(201, { radicado });
   } catch (e) {
     if (e instanceof ErrorSolicitud) {
