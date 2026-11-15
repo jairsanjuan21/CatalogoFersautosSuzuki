@@ -449,3 +449,7 @@ body {
   .cred-llega, .cred-campos > *, .cred-trazo { animation: none; opacity: 1; transform: none; filter: none; stroke-dashoffset: 0; }
   .cred-boton::after { animation: none; }
 }
+
+/* Opciones de las listas desplegables: como el campo es transparente, en Windows la lista se abría
+   con fondo blanco y el texto claro del modo oscuro. Aquí se fija la pareja para que siempre se lea */
+.catalogo select option { background-color: var(--superficie); color: var(--texto); }
