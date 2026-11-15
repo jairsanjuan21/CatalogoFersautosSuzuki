@@ -1,7 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useState, useTransition, type FormEvent } from "react";
-import { borrarFotoModelo, guardarModelo, moverFoto, subirFotoModelo, sugerirDescripcion, type ResultadoAdmin } from "@/modulos/admin/acciones-catalogo";
+import { borrarFotoModelo, completarFicha, guardarModelo, moverFoto, subirFotoModelo, sugerirDescripcion, type ResultadoAdmin } from "@/modulos/admin/acciones-catalogo";
 import { comprimirImagen } from "@/lib/comprimir-imagen";
 import { aSlug, TIPO_VEHICULO } from "@/lib/formato";
 
@@ -22,7 +22,24 @@ export interface ModeloEditable {
   orden: number;
   visible: boolean;
   mostrarPrecio: boolean;
+  baul: string | null;
+  seguridad: string[];
+  largoMm: number | null;
+  anchoMm: number | null;
+  altoMm: number | null;
+  entreEjesMm: number | null;
+  alturaPisoMm: number | null;
 }
+
+/** Campos de la ficha técnica, como texto mientras se editan (así la IA y la persona los llenan igual) */
+type Ficha = Record<"motor" | "combustible" | "transmision" | "puestos" | "baul" | "largoMm" | "anchoMm" | "altoMm" | "entreEjesMm" | "alturaPisoMm" | "seguridad", string>;
+const MEDIDAS: [keyof Ficha, string][] = [
+  ["largoMm", "Largo"],
+  ["anchoMm", "Ancho"],
+  ["altoMm", "Alto"],
+  ["entreEjesMm", "Entre ejes"],
+  ["alturaPisoMm", "Altura al piso"],
+];
 
 /**
  * Definido FUERA del formulario a propósito: si se definiera dentro, React lo
@@ -49,6 +66,58 @@ export function FormularioModelo({ m }: { m: ModeloEditable }) {
   const [avisoIA, setAvisoIA] = useState<string>();
   const [pensando, iniciarIA] = useTransition();
   const err = estado.errores ?? {};
+
+  // Ficha técnica: controlada, para que la IA pueda llenarla y se vea qué cambió
+  const inicial: Ficha = {
+    motor: m.motor ?? "",
+    combustible: m.combustible ?? "",
+    transmision: m.transmision ?? "",
+    puestos: String(m.puestos),
+    baul: m.baul ?? "",
+    largoMm: m.largoMm ? String(m.largoMm) : "",
+    anchoMm: m.anchoMm ? String(m.anchoMm) : "",
+    altoMm: m.altoMm ? String(m.altoMm) : "",
+    entreEjesMm: m.entreEjesMm ? String(m.entreEjesMm) : "",
+    alturaPisoMm: m.alturaPisoMm ? String(m.alturaPisoMm) : "",
+    seguridad: m.seguridad.join("\n"),
+  };
+  const [ficha, setFicha] = useState<Ficha>(inicial);
+  const [deIA, setDeIA] = useState<Set<keyof Ficha>>(new Set()); // campos que llenó la IA y nadie ha revisado
+  const [fuentes, setFuentes] = useState<{ titulo: string; url: string }[] | null>(null);
+  const [verificada, setVerificada] = useState(true);
+  const [avisoFicha, setAvisoFicha] = useState<string>();
+  const [buscando, iniciarFicha] = useTransition();
+  const cambiar = (k: keyof Ficha, v: string) => {
+    setFicha((f) => ({ ...f, [k]: v }));
+    setDeIA((s) => {
+      const n = new Set(s);
+      n.delete(k);
+      return n;
+    });
+  };
+  const claseFicha = (k: keyof Ficha) => `${claseInput} ${deIA.has(k) ? "border-azul bg-cielo" : ""}`;
+
+  const pedirFicha = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const datos = new FormData(e.currentTarget.form!);
+    setAvisoFicha(undefined);
+    iniciarFicha(async () => {
+      const r = await completarFicha(m.id, { linea: String(datos.get("linea") ?? ""), tipo: String(datos.get("tipo") ?? "") }).catch(() => ({
+        ok: false as const,
+        mensaje: "No hay conexión. Intenta de nuevo.",
+      }));
+      if (!r.ok) return setAvisoFicha(r.mensaje);
+      // Solo se llenan los datos que la IA encontró; lo que dejó vacío se conserva como estaba
+      const nuevos: Partial<Ficha> = {};
+      for (const [k, v] of Object.entries(r.ficha) as [keyof Ficha, unknown][]) {
+        if (v === null || (Array.isArray(v) && !v.length)) continue;
+        nuevos[k] = Array.isArray(v) ? v.join("\n") : String(v);
+      }
+      setFicha((f) => ({ ...f, ...nuevos }));
+      setDeIA(new Set((Object.keys(nuevos) as (keyof Ficha)[]).filter((k) => nuevos[k] !== ficha[k])));
+      setFuentes(r.fuentes);
+      setVerificada(r.verificada);
+    });
+  };
 
   // La IA usa lo que hay escrito en el formulario, aunque todavía no se haya guardado
   const pedirIA = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -96,23 +165,6 @@ export function FormularioModelo({ m }: { m: ModeloEditable }) {
             {TIPOS.map(([v, t]) => (
               <option key={v} value={v}>{t}</option>
             ))}
-          </select>
-        </Campo>
-        <Campo id="puestos" error={err.puestos} etiqueta="Puestos">
-          <input id="puestos" name="puestos" type="number" min={1} max={9} defaultValue={m.puestos} aria-invalid={!!err.puestos} className={claseInput} />
-        </Campo>
-        <Campo id="motor" error={err.motor} etiqueta="Motor">
-          <input id="motor" name="motor" defaultValue={m.motor ?? ""} maxLength={60} placeholder="Ej: 1.2 L gasolina" className={claseInput} />
-        </Campo>
-        <Campo id="transmision" error={err.transmision} etiqueta="Transmisión">
-          <input id="transmision" name="transmision" defaultValue={m.transmision ?? ""} maxLength={60} placeholder="Ej: Mecánica o automática" className={claseInput} />
-        </Campo>
-        <Campo id="combustible" error={err.combustible} etiqueta="Combustible">
-          <select id="combustible" name="combustible" defaultValue={m.combustible ?? ""} className={claseInput}>
-            <option value="">Sin definir</option>
-            <option value="gasolina">Gasolina</option>
-            <option value="hibrido">Híbrido</option>
-            <option value="electrico">Eléctrico</option>
           </select>
         </Campo>
         <Campo id="descripcion" error={err.descripcion} etiqueta="Descripción corta" ancho>
@@ -166,6 +218,98 @@ export function FormularioModelo({ m }: { m: ModeloEditable }) {
           </label>
         </div>
       </div>
+
+      <fieldset className="mt-6 border-t border-linea pt-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <legend className="font-display text-xl font-semibold">Ficha técnica</legend>
+            <p className="text-sm text-texto-2">Lo que el cliente ve en la ficha del modelo. Si cambia entre versiones, pon el de la versión de entrada.</p>
+          </div>
+          <button
+            type="button"
+            onClick={pedirFicha}
+            disabled={buscando}
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-azul px-3.5 text-sm font-semibold text-azul-texto hover:bg-cielo disabled:opacity-60"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden className={`size-4 fill-none stroke-current stroke-2 [stroke-linecap:round] [stroke-linejoin:round] ${buscando ? "animate-spin" : ""}`}>
+              <path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z" />
+            </svg>
+            {buscando ? "Buscando la ficha oficial…" : "Completar con IA"}
+          </button>
+        </div>
+        {avisoFicha && <p role="alert" className="mt-3 rounded-lg bg-senal-fondo px-3.5 py-2.5 text-sm text-senal">{avisoFicha}</p>}
+        {fuentes && (
+          <div role="status" className={`mt-3 rounded-lg px-3.5 py-3 text-sm ${verificada ? "bg-cielo text-azul-texto" : "bg-ambar-fondo text-ambar"}`}>
+            <p className="font-semibold">
+              {verificada
+                ? deIA.size
+                  ? `La IA propuso ${deIA.size} ${deIA.size === 1 ? "dato nuevo o distinto" : "datos nuevos o distintos"} (resaltados). Revísalos contra las fuentes y luego guarda el modelo.`
+                  : "La IA encontró los mismos datos que ya tenías. Puedes revisarlos en las fuentes."
+                : "La IA no pudo buscar en internet: estos datos salen de su memoria y pueden estar mal. Compáralos con la ficha oficial de Suzuki antes de guardar."}
+            </p>
+            {fuentes.length > 0 && (
+              <ul className="mt-1.5 list-disc pl-5">
+                {fuentes.map((f) => (
+                  <li key={f.url}>
+                    <a href={f.url} target="_blank" rel="noopener noreferrer" className="underline">
+                      {f.titulo}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        <div className="mt-4 grid gap-3.5 sm:grid-cols-2">
+          <Campo id="motor" error={err.motor} etiqueta="Motor">
+            <input id="motor" name="motor" value={ficha.motor} onChange={(e) => cambiar("motor", e.target.value)} maxLength={60} placeholder="Ej: 1.5 L, 4 cilindros, 103 hp" className={claseFicha("motor")} />
+          </Campo>
+          <Campo id="combustible" error={err.combustible} etiqueta="Combustible">
+            <select id="combustible" name="combustible" value={ficha.combustible} onChange={(e) => cambiar("combustible", e.target.value)} className={claseFicha("combustible")}>
+              <option value="">Sin definir</option>
+              <option value="gasolina">Gasolina</option>
+              <option value="hibrido">Híbrido</option>
+              <option value="electrico">Eléctrico</option>
+            </select>
+          </Campo>
+          <Campo id="transmision" error={err.transmision} etiqueta="Transmisión">
+            <input id="transmision" name="transmision" value={ficha.transmision} onChange={(e) => cambiar("transmision", e.target.value)} maxLength={60} placeholder="Ej: Mecánica de 5 o automática de 6" className={claseFicha("transmision")} />
+          </Campo>
+          <Campo id="puestos" error={err.puestos} etiqueta="Capacidad de pasajeros">
+            <input id="puestos" name="puestos" type="number" min={1} max={9} value={ficha.puestos} onChange={(e) => cambiar("puestos", e.target.value)} aria-invalid={!!err.puestos} className={claseFicha("puestos")} />
+          </Campo>
+          <Campo id="baul" error={err.baul} etiqueta="Capacidad del baúl" ancho>
+            <input id="baul" name="baul" value={ficha.baul} onChange={(e) => cambiar("baul", e.target.value)} maxLength={80} placeholder="Ej: 308 L (1.050 L con sillas abatidas)" aria-invalid={!!err.baul} className={claseFicha("baul")} />
+          </Campo>
+        </div>
+
+        <p className="mt-4 mb-1.5 text-sm font-semibold">Dimensiones (milímetros)</p>
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
+          {MEDIDAS.map(([k, nombre]) => (
+            <div key={k}>
+              <label htmlFor={k} className="mb-1 block text-[13px] text-texto-2">{nombre}</label>
+              <input id={k} name={k} inputMode="numeric" value={ficha[k]} onChange={(e) => cambiar(k, e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="mm" aria-invalid={!!err[k]} className={claseFicha(k)} />
+              {err[k] && <p className="mt-1 text-[13px] text-senal">{err[k]}</p>}
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4">
+          <Campo id="seguridad" error={err.seguridad} etiqueta="Seguridad y tecnología (uno por línea)">
+            <textarea
+              id="seguridad"
+              name="seguridad"
+              value={ficha.seguridad}
+              onChange={(e) => cambiar("seguridad", e.target.value)}
+              rows={5}
+              placeholder={"6 airbags\nFrenos ABS con EBD\nCámara de reversa\nPantalla táctil con Apple CarPlay y Android Auto"}
+              aria-invalid={!!err.seguridad}
+              className={`${claseFicha("seguridad")} py-2`}
+            />
+          </Campo>
+        </div>
+      </fieldset>
       <button disabled={guardando} className="mt-4 min-h-11 rounded-lg bg-azul px-4 font-semibold text-white hover:bg-azul-hover disabled:opacity-60">
         {guardando ? "Guardando…" : "Guardar modelo"}
       </button>

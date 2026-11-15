@@ -241,6 +241,14 @@ export const modelos = pgTable(
     motor: text(),
     transmision: text(),
     combustible: combustible(), // para los filtros del catálogo; null = sin definir
+    // Ficha técnica (de la versión de entrada; puede variar en otras versiones)
+    baul: text(), // "308 L (1.050 L con sillas abatidas)"
+    seguridad: text().array().notNull().default(sql`'{}'::text[]`), // "6 airbags", "Cámara de reversa"...
+    largoMm: smallint(),
+    anchoMm: smallint(),
+    altoMm: smallint(),
+    entreEjesMm: smallint(),
+    alturaPisoMm: smallint(),
     descripcion: text(),
     visible: boolean().notNull().default(false), // nace oculto hasta que esté completo
     archivado: boolean().notNull().default(false), // ya no se vende, pero solicitudes viejas lo usan
@@ -257,6 +265,14 @@ export const modelos = pgTable(
     check("modelos_video", sql`${t.videoYoutube} is null or ${t.videoYoutube} ~ '^[A-Za-z0-9_-]{11}$'`),
     check("modelos_slug_formato", sql`${t.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`),
     check("modelos_descripcion_corta", sql`char_length(${t.descripcion}) <= 140`),
+    check("modelos_baul_corto", sql`char_length(${t.baul}) <= 80`),
+    check("modelos_seguridad_max", sql`coalesce(array_length(${t.seguridad}, 1), 0) <= 15`),
+    check(
+      "modelos_medidas",
+      sql`(${t.largoMm} is null or ${t.largoMm} between 2000 and 7000) and (${t.anchoMm} is null or ${t.anchoMm} between 1000 and 3000)
+        and (${t.altoMm} is null or ${t.altoMm} between 1000 and 3000) and (${t.entreEjesMm} is null or ${t.entreEjesMm} between 1500 and 4500)
+        and (${t.alturaPisoMm} is null or ${t.alturaPisoMm} between 80 and 400)`,
+    ),
   ],
 );
 

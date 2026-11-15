@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { ErrorIA, pedirAGemini } from "./gemini";
 
 /* ============================================================================
    DESCRIPCIONES DEL CATÁLOGO CON GEMINI (plan gratuito)
@@ -10,7 +11,7 @@ import { z } from "zod";
 
 export const MAX_DESCRIPCION = 140;
 
-export class ErrorIA extends Error {}
+export { ErrorIA };
 
 export interface DatosVehiculo {
   linea: string;
@@ -61,44 +62,10 @@ ${datos}`;
 
 /** Pide tres descripciones a Gemini. Lanza ErrorIA con un mensaje para mostrar tal cual. */
 export async function sugerirDescripciones(d: DatosVehiculo): Promise<string[]> {
-  const llave = process.env.GEMINI_API_KEY;
-  if (!llave) throw new ErrorIA("La IA no está configurada todavía (falta GEMINI_API_KEY en el servidor).");
-  const modelo = process.env.IA_MODELO || "gemini-3.5-flash";
-  const base = process.env.GEMINI_BASE_URL || "https://generativelanguage.googleapis.com";
   // Zod 4 genera el JSON Schema; se quita "$schema", que la API no necesita
   const jsonSchema = z.toJSONSchema(esquema, { target: "draft-2020-12" }) as Record<string, unknown>;
   delete jsonSchema.$schema;
-
-  let res: Response;
-  try {
-    res = await fetch(`${base}/v1beta/models/${encodeURIComponent(modelo)}:generateContent`, {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-goog-api-key": llave },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: instrucciones(d) }] }],
-        generationConfig: { responseMimeType: "application/json", responseJsonSchema: jsonSchema, temperature: 0.9, maxOutputTokens: 1024 },
-      }),
-      signal: AbortSignal.timeout(30_000),
-    });
-  } catch (e) {
-    if (e instanceof Error && e.name === "TimeoutError") throw new ErrorIA("La IA tardó demasiado. Intenta de nuevo.");
-    throw new ErrorIA("No pudimos conectarnos con la IA. Revisa la conexión del servidor.");
-  }
-
-  const json = (await res.json().catch(() => ({}))) as {
-    error?: { message?: string; status?: string };
-    candidates?: { content?: { parts?: { text?: string }[] } }[];
-  };
-  if (!res.ok) {
-    const detalle = `${json.error?.status ?? ""} ${json.error?.message ?? ""}`;
-    if (res.status === 429) throw new ErrorIA("Se alcanzó el límite gratuito de la IA por ahora. Intenta más tarde.");
-    if (res.status === 403 || /API_KEY_INVALID|API key not valid|PERMISSION_DENIED/i.test(detalle)) throw new ErrorIA("La llave de Gemini no es válida. Revisa GEMINI_API_KEY.");
-    if (res.status >= 500) throw new ErrorIA("La IA no está disponible en este momento. Intenta en unos minutos.");
-    console.error("Gemini respondió", res.status, detalle);
-    throw new ErrorIA("La IA no pudo escribir la descripción. Intenta de nuevo.");
-  }
-
-  const texto = json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
+  const { texto } = await pedirAGemini({ texto: instrucciones(d), jsonSchema, temperatura: 0.9, maxTokens: 1024 });
   let opciones: string[];
   try {
     opciones = esquema.parse(JSON.parse(texto)).opciones;

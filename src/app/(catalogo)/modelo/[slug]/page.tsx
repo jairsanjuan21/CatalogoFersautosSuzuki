@@ -47,10 +47,20 @@ async function Contenido({ params }: { params: Params }) {
   const ficha: [string, string | number | null][] = [
     ["Motor", m.motor],
     ["Combustible", m.combustible ? COMBUSTIBLE_TEXTO[m.combustible] : null],
+    ["Capacidad de pasajeros", m.puestos],
+    ["Capacidad del baúl", m.baul],
     ["Transmisión", m.transmision],
-    ["Puestos", m.puestos],
     ["Tipo", TIPO_TEXTO[m.tipo]],
   ];
+  const mm = (v: number | null) => (v ? `${v.toLocaleString("es-CO")} mm` : null);
+  const medidas: [string, string | null][] = [
+    ["Largo", mm(m.largoMm)],
+    ["Ancho", mm(m.anchoMm)],
+    ["Alto", mm(m.altoMm)],
+    ["Distancia entre ejes", mm(m.entreEjesMm)],
+    ["Altura libre al piso", mm(m.alturaPisoMm)],
+  ];
+  const hayMedidas = medidas.some(([, v]) => v);
 
   const fechas = m.versiones.flatMap((v) => (v.actualizado && !v.deLista ? [v.actualizado.getTime()] : []));
   const actualizado = fechas.length ? new Date(Math.max(...fechas)) : null;
@@ -169,7 +179,9 @@ async function Contenido({ params }: { params: Params }) {
           </div>
         )}
 
-        <dl className="mt-5.5 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-linea bg-linea">
+        <h2 className="font-display mt-6 mb-2 text-xl font-bold">Ficha técnica</h2>
+        {/* Si queda un dato suelto en la última fila, ocupa todo el ancho en vez de dejar un hueco gris */}
+        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-linea bg-linea [&>div:last-child:nth-child(odd)]:col-span-2">
           {ficha
             .filter(([, v]) => v !== null && v !== "")
             .map(([k, v]) => (
@@ -179,6 +191,38 @@ async function Contenido({ params }: { params: Params }) {
               </div>
             ))}
         </dl>
+
+        {m.seguridad.length > 0 && (
+          <div className="mt-3 rounded-xl border border-linea bg-superficie px-3.5 py-3">
+            <h3 className="text-[13px] text-texto-2">Seguridad y tecnología</h3>
+            <ul className="mt-1.5 grid gap-x-4 gap-y-1.5 sm:grid-cols-2">
+              {m.seguridad.map((s) => (
+                <li key={s} className="flex items-start gap-2 font-semibold">
+                  <svg viewBox="0 0 24 24" aria-hidden className="mt-1 size-4 flex-none fill-none stroke-ok stroke-[2.6] [stroke-linecap:round] [stroke-linejoin:round]">
+                    <path d="M5 12.5l4.5 4.5L19 7" />
+                  </svg>
+                  {s}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {hayMedidas && (
+          <div className="mt-3 rounded-xl border border-linea bg-superficie px-3.5 py-3">
+            <h3 className="text-[13px] text-texto-2">Dimensiones y tamaño</h3>
+            <dl className="mt-1.5 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
+              {medidas
+                .filter(([, v]) => v)
+                .map(([k, v]) => (
+                  <div key={k}>
+                    <dt className="text-[13px] text-texto-2">{k}</dt>
+                    <dd className="font-semibold tabular-nums">{v}</dd>
+                  </div>
+                ))}
+            </dl>
+          </div>
+        )}
         <p className="mt-2 text-[13px] text-texto-2">Ficha de referencia. Confirma la versión y el equipamiento con {asesora.primerNombre}.</p>
       </div>
     </div>

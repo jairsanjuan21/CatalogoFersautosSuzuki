@@ -214,6 +214,20 @@ La IA tiene prohibido inventar cifras o equipamiento y mencionar precios o promo
 el botón muestra un aviso y todo lo demás funciona igual. Google puede usar las peticiones del plan
 gratuito para mejorar sus productos: solo se le envían datos del vehículo, nunca de clientes.
 
+## Ficha técnica con IA
+
+Cada modelo tiene su ficha: motor, combustible, transmisión, pasajeros, baúl, seguridad y tecnología
+(uno por línea) y dimensiones en milímetros. En el editor del modelo, **Completar con IA** le pide a
+Gemini que **busque en Google** la ficha oficial (prioriza suzuki.com.co) y llena el formulario:
+
+- Solo llena lo que encontró; lo que deja vacío se conserva. Los datos nuevos quedan resaltados.
+- Muestra las páginas que consultó, para comparar antes de guardar. Nada se guarda solo.
+- Cada medida se valida con rangos realistas (un largo de 9.999 mm se descarta, no se corrige).
+- Si la búsqueda en Google no está disponible para la cuenta, responde sin buscar y lo avisa en ámbar.
+
+Las descripciones y la ficha comparten el tope `IA_USOS_MES` (200 por defecto). El cliente de Gemini
+está en `src/modulos/ia/gemini.ts`.
+
 ## Fotos del catálogo
 
 El admin sube las fotos de cada modelo en **Admin → Catálogo**, y Natalia sube la suya en

@@ -22,6 +22,13 @@ const columnas = {
   descripcion: t.modelos.descripcion,
   videoYoutube: t.modelos.videoYoutube,
   combustible: t.modelos.combustible,
+  baul: t.modelos.baul,
+  seguridad: t.modelos.seguridad,
+  largoMm: t.modelos.largoMm,
+  anchoMm: t.modelos.anchoMm,
+  altoMm: t.modelos.altoMm,
+  entreEjesMm: t.modelos.entreEjesMm,
+  alturaPisoMm: t.modelos.alturaPisoMm,
   precio: sql<number | null>`case when ${t.modelos.mostrarPrecio} then ${t.modelos.precioBase} end`.mapWith((v) => (v === null ? null : Number(v))),
 };
 

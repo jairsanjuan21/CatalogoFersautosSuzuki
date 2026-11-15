@@ -2,7 +2,7 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, asc, count, eq, gte, max, ne, sql } from "drizzle-orm";
+import { and, asc, count, eq, gte, inArray, max, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import * as t from "@/db/esquema";
@@ -13,6 +13,8 @@ import { erroresPorCampo } from "@/validacion/solicitud";
 import { permitir } from "@/lib/limite";
 import { nombreVersion, TIPO_VEHICULO } from "@/lib/formato";
 import { ErrorIA, sugerirDescripciones } from "@/modulos/ia/descripcion";
+import { sugerirFicha, type FichaSugerida } from "@/modulos/ia/ficha";
+import type { Fuente } from "@/modulos/ia/gemini";
 
 export interface ResultadoAdmin {
   ok: boolean;
@@ -38,6 +40,14 @@ export async function crearModelo() {
   redirect(`${baseCatalogo(actor)}/${m.id}`); // el destino sale del rol, no de un dato del formulario
 }
 
+/** Medida en milímetros: vacío = sin dato; si no, un entero dentro de un rango realista */
+const medida = (min: number, max: number) =>
+  z
+    .string()
+    .transform((v) => v.replace(/\D/g, ""))
+    .transform((v) => (v ? Number(v) : null))
+    .refine((v) => v === null || (v >= min && v <= max), { error: `En milímetros, entre ${min.toLocaleString("es-CO")} y ${max.toLocaleString("es-CO")}.` });
+
 const esquemaModelo = z.object({
   id: uuid,
   linea: z.string().trim().min(2, { error: "Escribe el nombre de la línea." }).max(40),
@@ -56,6 +66,18 @@ const esquemaModelo = z.object({
   orden: z.coerce.number().int().min(0).max(99),
   visible: z.preprocess((v) => v === "on", z.boolean()),
   mostrarPrecio: z.preprocess((v) => v === "on", z.boolean()),
+  // Ficha técnica
+  baul: z.string().trim().max(80, { error: "Máximo 80 caracteres." }).transform((v) => v || null),
+  seguridad: z
+    .string()
+    .transform((v) => [...new Set(v.split("\n").map((x) => x.replace(/\s+/g, " ").trim()).filter(Boolean))])
+    .refine((xs) => xs.length <= 15, { error: "Máximo 15 elementos." })
+    .refine((xs) => xs.every((x) => x.length <= 80), { error: "Cada elemento: máximo 80 caracteres." }),
+  largoMm: medida(2000, 7000),
+  anchoMm: medida(1000, 3000),
+  altoMm: medida(1000, 3000),
+  entreEjesMm: medida(1500, 4500),
+  alturaPisoMm: medida(80, 400),
 });
 
 export async function guardarModelo(_previo: ResultadoAdmin, formulario: FormData): Promise<ResultadoAdmin> {
@@ -271,6 +293,27 @@ export async function guardarVideo(modeloId: string, enlace: string): Promise<Re
 /* ---------- descripción del modelo con IA (Gemini) ---------- */
 
 const ACCION_IA = "Pidió descripciones a la IA";
+const ACCION_FICHA = "Pidió la ficha técnica a la IA";
+
+/**
+ * Tope mensual compartido por las dos funciones de IA: el plan gratuito de Gemini tiene límites
+ * y esto evita gastarlos sin querer. Devuelve el mensaje si ya se llegó, o null.
+ */
+async function topeIA() {
+  // Vacío, cero o algo que no sea número = el valor por defecto (un "IA_USOS_MES=" vacío dejaba el tope en 0)
+  const configurado = Number(process.env.IA_USOS_MES);
+  const tope = Number.isInteger(configurado) && configurado > 0 ? configurado : 200;
+  const [{ usados }] = await db
+    .select({ usados: count() })
+    .from(t.auditoria)
+    .where(
+      and(
+        inArray(t.auditoria.accion, [ACCION_IA, ACCION_FICHA]),
+        gte(t.auditoria.creadoEn, sql`date_trunc('month', now() at time zone 'America/Bogota') at time zone 'America/Bogota'`),
+      ),
+    );
+  return usados >= tope ? `Se alcanzó el tope de ${tope} usos de la IA este mes.` : null;
+}
 const COMBUSTIBLES: Record<string, string> = { gasolina: "gasolina", hibrido: "híbrido", electrico: "eléctrico" };
 
 const esquemaSugerencia = z.object({
@@ -294,15 +337,8 @@ export async function sugerirDescripcion(modeloId: string, campos: Record<string
   if (!r.success) return { ok: false, mensaje: r.error.issues[0]?.message ?? "Revisa los datos del modelo." };
   if (!permitir(`ia-descripcion:${usuarioId}`, 15, 60 * 60 * 1000)) return { ok: false, mensaje: "Pediste muchas descripciones seguidas. Intenta en un rato." };
 
-  // Tope mensual: el plan gratuito de Gemini tiene límites; esto evita gastarlos sin querer
-  // Vacío, cero o algo que no sea número = el valor por defecto (antes un "IA_USOS_MES=" vacío dejaba el tope en 0)
-  const configurado = Number(process.env.IA_USOS_MES);
-  const tope = Number.isInteger(configurado) && configurado > 0 ? configurado : 200;
-  const [{ usados }] = await db
-    .select({ usados: count() })
-    .from(t.auditoria)
-    .where(and(eq(t.auditoria.accion, ACCION_IA), gte(t.auditoria.creadoEn, sql`date_trunc('month', now() at time zone 'America/Bogota') at time zone 'America/Bogota'`)));
-  if (usados >= tope) return { ok: false, mensaje: `Se alcanzó el tope de ${tope} sugerencias de la IA este mes.` };
+  const tope = await topeIA();
+  if (tope) return { ok: false, mensaje: tope };
 
   const versiones = await db
     .select({ nombre: t.versiones.nombre, transmision: t.versiones.transmision })
@@ -390,4 +426,44 @@ export async function moverColor(colorId: string, direccion: -1 | 1): Promise<Re
   });
   refresh();
   return { ok: true };
+}
+
+/* ---------- ficha técnica con IA (Gemini + búsqueda en Google) ---------- */
+
+/**
+ * Propone la ficha técnica buscando en internet. No guarda nada: llena el formulario y
+ * Natalia (o el admin) revisa cada dato contra las fuentes antes de guardar el modelo.
+ */
+export async function completarFicha(
+  modeloId: string,
+  campos: { linea: string; tipo: string },
+): Promise<{ ok: true; ficha: FichaSugerida; fuentes: Fuente[]; verificada: boolean } | { ok: false; mensaje: string }> {
+  const { usuarioId, ip, actor } = await exigirGestorCatalogo();
+  const r = z.object({ id: uuid, linea: z.string().trim().min(2, { error: "Escribe primero el nombre de la línea." }).max(40), tipo: z.enum(t.tipoVehiculo.enumValues) }).safeParse({ id: modeloId, ...campos });
+  if (!r.success) return { ok: false, mensaje: r.error.issues[0]?.message ?? "Revisa los datos del modelo." };
+  if (!permitir(`ia-ficha:${usuarioId}`, 10, 60 * 60 * 1000)) return { ok: false, mensaje: "Pediste muchas fichas seguidas. Intenta en un rato." };
+  const tope = await topeIA();
+  if (tope) return { ok: false, mensaje: tope };
+
+  const versiones = await db
+    .select({ nombre: t.versiones.nombre, transmision: t.versiones.transmision, precioBase: t.versiones.precioBase })
+    .from(t.versiones)
+    .where(and(eq(t.versiones.modeloId, modeloId), eq(t.versiones.visible, true)))
+    .orderBy(asc(t.versiones.orden), asc(t.versiones.nombre));
+  const entrada = versiones.filter((v) => v.precioBase).sort((a, b) => a.precioBase! - b.precioBase!)[0] ?? versiones[0];
+
+  try {
+    const res = await sugerirFicha({
+      linea: r.data.linea,
+      tipo: TIPO_VEHICULO[r.data.tipo],
+      versiones: versiones.map(nombreVersion),
+      versionEntrada: entrada ? nombreVersion(entrada) : null,
+    });
+    await db.insert(t.auditoria).values({ actor, usuarioId, accion: ACCION_FICHA, entidad: "modelos", entidadId: r.data.linea, ip, detalle: { fuentes: res.fuentes.map((f) => f.url), verificada: res.verificada } });
+    return { ok: true, ...res };
+  } catch (e) {
+    if (e instanceof ErrorIA) return { ok: false, mensaje: e.message };
+    console.error("Error pidiendo la ficha técnica a la IA", e);
+    return { ok: false, mensaje: "La IA no pudo completar la ficha. Intenta de nuevo." };
+  }
 }
