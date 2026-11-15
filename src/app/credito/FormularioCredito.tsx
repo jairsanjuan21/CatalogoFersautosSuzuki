@@ -30,7 +30,8 @@ import {
   Texto,
   useCampo,
 } from "./campos";
-import { Carretera } from "./Carretera";
+import { Encabezado, Iniciales, Resumen, ResumenMovil } from "./Marco";
+import type { Carroceria } from "@/componentes/Carro";
 import { Firma } from "./Firma";
 import { FotoCedula, type Foto } from "./FotoCedula";
 
@@ -46,6 +47,7 @@ export interface ConfigFormulario {
   plazos: number[];
   clausula: { version: number; texto: string };
   lineas: string[];
+  tipos: Record<string, Carroceria>; // carrocería de cada línea, para la ilustración del resumen
 }
 
 type Borrador = Record<string, Record<string, unknown> | undefined>;
@@ -71,6 +73,7 @@ interface Paso {
   clave: string;
   corto: string;
   titulo: string;
+  pregunta: string; // el titular grande del paso
   intro: string;
   validar: (e: Estado) => Errores;
 }
@@ -78,13 +81,15 @@ interface Paso {
 const PASOS: Paso[] = [
   {
     clave: "vehiculo",
+    pregunta: "¿Con cuánto cuentas para la cuota inicial?",
     corto: "Vehículo",
     titulo: "Tu Suzuki y la financiación",
-    intro: "Cuéntanos con cuánto cuentas para la cuota inicial y en cuánto tiempo quieres pagar.",
+    intro: "Y en cuánto tiempo quieres pagar. El valor exacto del vehículo te lo confirma tu asesora.",
     validar: (e) => validarCon(pasoVehiculo, "vehiculo", e.datos.vehiculo),
   },
   {
     clave: "personal",
+    pregunta: "Cuéntanos quién eres",
     corto: "Datos personales",
     titulo: "Tus datos personales",
     intro: "Escríbelos tal como aparecen en tu documento de identidad.",
@@ -92,6 +97,7 @@ const PASOS: Paso[] = [
   },
   {
     clave: "documento",
+    pregunta: "Tómale una foto a tu cédula",
     corto: "Cédula",
     titulo: "Foto de tu cédula",
     intro: "Toma una foto de cada cara de tu documento. La entidad financiera la necesita para estudiar tu crédito.",
@@ -102,6 +108,7 @@ const PASOS: Paso[] = [
   },
   {
     clave: "contacto",
+    pregunta: "¿Dónde te contactamos?",
     corto: "Contacto y vivienda",
     titulo: "Contacto y vivienda",
     intro: "Natalia te contactará por estos medios.",
@@ -109,6 +116,7 @@ const PASOS: Paso[] = [
   },
   {
     clave: "actividad",
+    pregunta: "¿A qué te dedicas?",
     corto: "Actividad económica",
     titulo: "Tu actividad económica",
     intro: "Así sabremos de dónde vienen tus ingresos.",
@@ -116,6 +124,7 @@ const PASOS: Paso[] = [
   },
   {
     clave: "finanzas",
+    pregunta: "¿Cuánto recibes y cuánto gastas al mes?",
     corto: "Finanzas",
     titulo: "Tus ingresos y gastos",
     intro: "Valores mensuales aproximados. Suma todo lo que recibes y todo lo que pagas.",
@@ -123,6 +132,7 @@ const PASOS: Paso[] = [
   },
   {
     clave: "referencias",
+    pregunta: "¿Quién te conoce bien?",
     corto: "Referencias",
     titulo: "Tus referencias",
     intro: "Personas que te conozcan y que la entidad financiera pueda llamar. No pueden vivir contigo.",
@@ -130,6 +140,7 @@ const PASOS: Paso[] = [
   },
   {
     clave: "conyuge",
+    pregunta: "¿Tienes esposo(a) o compañero(a)?",
     corto: "Cónyuge",
     titulo: "Datos de tu cónyuge",
     intro: "Solo si tienes esposo(a) o compañero(a) permanente.",
@@ -137,6 +148,7 @@ const PASOS: Paso[] = [
   },
   {
     clave: "firma",
+    pregunta: "Revisa y firma tu solicitud",
     corto: "Revisar y firmar",
     titulo: "Revisa y firma",
     intro: "Confirma que todo esté bien. Puedes volver a cualquier sección para corregir.",
@@ -325,13 +337,21 @@ export function FormularioCredito({ config, origenRecordado }: { config: ConfigF
 
   /* ---------- pantallas ---------- */
 
-  const cabecera = <Asesora nombre={config.asesoraNombre} sede={config.sede} />;
+  const v = estado.datos.vehiculo ?? {};
+  const linea = typeof v.lineaInteres === "string" ? v.lineaInteres : undefined;
+  const resumen = {
+    linea,
+    tipo: linea ? config.tipos[linea] : undefined,
+    cuota: typeof v.cuotaInicial === "number" ? v.cuotaInicial : undefined,
+    plazo: typeof v.plazoMeses === "number" ? v.plazoMeses : undefined,
+    nombre: [estado.datos.personal?.nombres, estado.datos.personal?.primerApellido].filter((x) => typeof x === "string" && x).join(" "),
+  };
 
   if (paso === -1) {
     return (
       <>
-        {cabecera}
-        <Bienvenida hayBorrador={hayBorrador} alEmpezar={() => empezar(false)} alReiniciar={() => empezar(true)} />
+        <Encabezado total={PASOS.length} />
+        <Bienvenida asesora={config.asesoraNombre} sede={config.sede} hayBorrador={hayBorrador} alEmpezar={() => empezar(false)} alReiniciar={() => empezar(true)} />
       </>
     );
   }
@@ -339,7 +359,7 @@ export function FormularioCredito({ config, origenRecordado }: { config: ConfigF
   if (paso === PASOS.length) {
     return (
       <>
-        {cabecera}
+        <Encabezado total={PASOS.length} />
         <Confirmacion
           radicado={radicado!}
           nombre={String(estado.datos.personal?.nombres ?? "").split(" ")[0]}
@@ -352,67 +372,100 @@ export function FormularioCredito({ config, origenRecordado }: { config: ConfigF
   }
 
   const P = PASOS[paso];
+  const ultimo = paso === PASOS.length - 1;
+  const textoBoton = enviando ? "Enviando…" : ultimo ? "Enviar solicitud" : "Continuar";
   return (
     <FormularioContexto value={ctx}>
-      {cabecera}
-      <Carretera paso={paso} total={PASOS.length} nombre={P.corto} />
-      <form
-        noValidate
-        onSubmit={(e) => {
-          e.preventDefault();
-          continuar();
-        }}
-        className="pb-28"
-      >
-        <h2 className="font-display mt-6 text-[28px] leading-tight font-semibold">{P.titulo}</h2>
-        <p className="mt-1.5 mb-5 max-w-[60ch] text-texto-2">{P.intro}</p>
-
-        {/* Campo trampa para bots: invisible y fuera del orden de tabulación */}
-        <input
-          ref={trampa}
-          name="sitio_web"
-          tabIndex={-1}
-          autoComplete="off"
+      <Encabezado paso={paso} total={PASOS.length} />
+      <div className="relative isolate">
+        <div
           aria-hidden
-          className="absolute -left-[9999px] h-px w-px opacity-0"
+          className="cat-mancha pointer-events-none absolute -top-40 -right-48 -z-10 hidden size-[540px] rounded-[42%_58%_55%_45%] bg-linea/50 lg:block"
         />
+        <div className="mx-auto grid max-w-6xl items-start gap-12 px-5 pt-7 pb-36 sm:pt-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:pb-16">
+          <form
+            noValidate
+            onSubmit={(e) => {
+              e.preventDefault();
+              continuar();
+            }}
+            className="min-w-0"
+          >
+            {/* key: al cambiar de paso todo se vuelve a montar y repite la entrada */}
+            <div key={paso}>
+              {paso > 0 && <ResumenMovil d={resumen} />}
+              <p className="cred-llega text-[15px] font-semibold text-azul-texto">
+                {String(paso + 1).padStart(2, "0")} · {P.corto}
+              </p>
+              <h1
+                className="cred-llega mt-2 font-display text-[clamp(32px,8.5vw,56px)] leading-[1.05] font-semibold tracking-[-0.02em] text-balance text-tinta"
+                style={{ animationDelay: "0.06s" }}
+              >
+                {P.pregunta}
+              </h1>
+              <p className="cred-llega mt-3 max-w-[56ch] text-[17px] leading-relaxed text-texto-2 sm:text-lg" style={{ animationDelay: "0.12s" }}>
+                {P.intro}
+              </p>
 
-        <div className="grid grid-cols-2 gap-x-3.5 gap-y-4">
-          <ContenidoPaso
-            clave={P.clave}
-            config={config}
-            estado={estado}
-            setEstado={setEstado}
-            errores={errores}
-            irA={irA}
-          />
+              {/* Campo trampa para bots: invisible y fuera del orden de tabulación */}
+              <input ref={trampa} name="sitio_web" tabIndex={-1} autoComplete="off" aria-hidden className="absolute -left-[9999px] h-px w-px opacity-0" />
+
+              <div className="cred-campos mt-8 grid grid-cols-2 gap-x-6 gap-y-7 sm:mt-10">
+                <ContenidoPaso clave={P.clave} config={config} estado={estado} setEstado={setEstado} errores={errores} irA={irA} />
+              </div>
+            </div>
+
+            {mensaje && (
+              <p role="alert" className="mt-6 rounded-2xl bg-senal-fondo p-4 text-senal">
+                {mensaje}
+              </p>
+            )}
+
+            {/* Computador: botones al final del paso */}
+            <div className="mt-10 hidden items-center gap-4 lg:flex">
+              <button
+                type="submit"
+                disabled={enviando}
+                className="cred-boton min-h-[58px] rounded-2xl bg-acento px-9 text-lg font-bold text-white hover:bg-acento-hover disabled:cursor-wait disabled:opacity-60"
+              >
+                {textoBoton}
+              </button>
+              <button type="button" onClick={() => irA(paso - 1)} className="min-h-12 px-2.5 font-semibold text-texto-2 hover:text-tinta">
+                ‹ Volver
+              </button>
+              {!ultimo && (
+                <span className="text-sm text-texto-2">
+                  o presiona <kbd className="rounded-md border border-linea-2 bg-superficie px-1.5 py-0.5 font-panel text-[13px] font-semibold">Enter ↵</kbd>
+                </span>
+              )}
+            </div>
+
+            {/* Celular: barra fija abajo, al alcance del pulgar */}
+            <div className="fixed inset-x-0 bottom-0 z-20 border-t border-linea bg-fondo/95 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] backdrop-blur-md lg:hidden">
+              <div className="mx-auto flex max-w-2xl gap-2.5 px-5">
+                <button
+                  type="button"
+                  onClick={() => irA(paso - 1)}
+                  aria-label="Volver al paso anterior"
+                  className="grid min-h-[56px] w-[56px] flex-none place-items-center rounded-2xl border-[1.5px] border-linea-2 bg-superficie text-tinta"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden className="size-6 fill-none stroke-current stroke-[2.2] [stroke-linecap:round] [stroke-linejoin:round]">
+                    <path d="M15 6l-6 6 6 6" />
+                  </svg>
+                </button>
+                <button
+                  type="submit"
+                  disabled={enviando}
+                  className="cred-boton min-h-[56px] flex-1 rounded-2xl bg-acento text-[17px] font-bold text-white disabled:cursor-wait disabled:opacity-60"
+                >
+                  {textoBoton}
+                </button>
+              </div>
+            </div>
+          </form>
+          <Resumen d={resumen} asesora={config.asesoraNombre} />
         </div>
-
-        {mensaje && (
-          <p role="alert" className="mt-5 rounded-lg bg-senal-fondo p-3.5 text-senal">
-            {mensaje}
-          </p>
-        )}
-
-        <div className="fixed inset-x-0 bottom-0 z-10 border-t border-linea bg-fondo pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
-          <div className="mx-auto flex max-w-2xl gap-2.5 px-5">
-            <button
-              type="button"
-              onClick={() => irA(paso - 1)}
-              className="min-h-[50px] rounded-xl border border-linea-2 bg-superficie px-5 font-semibold"
-            >
-              Atrás
-            </button>
-            <button
-              type="submit"
-              disabled={enviando}
-              className="min-h-[50px] flex-1 rounded-xl bg-azul font-semibold text-white hover:bg-azul-hover disabled:cursor-wait disabled:opacity-60"
-            >
-              {enviando ? "Enviando…" : paso === PASOS.length - 1 ? "Enviar solicitud" : "Continuar"}
-            </button>
-          </div>
-        </div>
-      </form>
+      </div>
     </FormularioContexto>
   );
 }
@@ -455,10 +508,10 @@ function ContenidoPaso(p: PropsPaso) {
 
 function DatosFijos({ items }: { items: [string, string, boolean?][] }) {
   return (
-    <dl className="col-span-2 grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-px overflow-hidden rounded-xl border border-linea bg-linea">
+    <dl className="col-span-2 flex flex-wrap gap-2">
       {items.map(([k, v, pendiente]) => (
-        <div key={k} className="bg-superficie px-3 py-2.5">
-          <dt className="text-[13px] text-texto-2">{k}</dt>
+        <div key={k} className="flex gap-1.5 rounded-xl bg-cielo px-3 py-2 text-sm">
+          <dt className="text-texto-2">{k}:</dt>
           <dd className={`font-semibold ${pendiente ? "text-azul-texto" : ""}`}>{v}</dd>
         </div>
       ))}
@@ -469,6 +522,21 @@ function DatosFijos({ items }: { items: [string, string, boolean?][] }) {
 function PasoVehiculo({ config }: { config: ConfigFormulario }) {
   return (
     <>
+      <Dinero ruta="vehiculo.cuotaInicial" etiqueta="Cuota inicial" ayuda="El dinero que tienes disponible para el primer pago." />
+      <Chips
+        ruta="vehiculo.plazoMeses"
+        etiqueta="Plazo"
+        sufijo=" meses"
+        rejilla
+        opciones={[...config.plazos].sort((a, b) => a - b).map((x) => [x, String(x)])}
+      />
+      <Seleccion
+        ruta="vehiculo.lineaInteres"
+        etiqueta="Línea que te interesa"
+        opcional
+        opciones={config.lineas}
+        ayuda={`${config.asesoraNombre.split(" ")[0]} te confirma la versión y el modelo exactos.`}
+      />
       <DatosFijos
         items={[
           ["Sede", config.sede],
@@ -476,22 +544,8 @@ function PasoVehiculo({ config }: { config: ConfigFormulario }) {
           ["Condición", "Nuevo"],
           ["Servicio", "Particular"],
           ["Plan", "Tradicional"],
-          ["Valor del vehículo", "Lo confirma Natalia", true],
+          ["Valor del vehículo", `Lo confirma ${config.asesoraNombre.split(" ")[0]}`, true],
         ]}
-      />
-      <Seleccion
-        ruta="vehiculo.lineaInteres"
-        etiqueta="Línea que te interesa"
-        opcional
-        opciones={config.lineas}
-        ayuda="Natalia te confirma la versión y el modelo exactos."
-      />
-      <Dinero ruta="vehiculo.cuotaInicial" etiqueta="Cuota inicial" ayuda="El dinero que tienes disponible para el primer pago." />
-      <Chips
-        ruta="vehiculo.plazoMeses"
-        etiqueta="Plazo"
-        sufijo=" meses"
-        opciones={[...config.plazos].sort((a, b) => a - b).map((x) => [x, String(x)])}
       />
     </>
   );
@@ -564,7 +618,7 @@ function PasoContacto() {
       <Texto ruta="contacto.direccion" etiqueta="Dirección de residencia" placeholder="Ej: Av. 0 # 12-34" autoComplete="street-address" />
       <Texto ruta="contacto.barrio" etiqueta="Barrio" media />
       <Texto ruta="contacto.ciudad" etiqueta="Ciudad" media />
-      <Chips ruta="contacto.estrato" etiqueta="Estrato" opciones={[1, 2, 3, 4, 5, 6].map((n) => [n, String(n)])} />
+      <Chips ruta="contacto.estrato" rejilla etiqueta="Estrato" opciones={[1, 2, 3, 4, 5, 6].map((n) => [n, String(n)])} />
       <Chips ruta="contacto.tipoVivienda" etiqueta="Tipo de vivienda" opciones={opciones(OPCIONES.tipoVivienda)} />
       <Texto ruta="contacto.tiempoVivienda" etiqueta="Tiempo en la vivienda" media placeholder="Ej: 3 años" />
       {vivienda === "arrendada" && (
@@ -865,77 +919,152 @@ function Casilla({ id, marcada, alCambiar, error, children }: { id: string; marc
    CABECERA, BIENVENIDA Y CONFIRMACIÓN
    ========================================================================== */
 
-function Asesora({ nombre, sede }: { nombre: string; sede: string }) {
-  const corto = nombre; // ya llega con el nombre público
-  const iniciales = corto.split(" ").map((p) => p[0]).slice(0, 2).join("");
+function Bienvenida({
+  asesora,
+  sede,
+  hayBorrador,
+  alEmpezar,
+  alReiniciar,
+}: {
+  asesora: string;
+  sede: string;
+  hayBorrador: boolean;
+  alEmpezar: () => void;
+  alReiniciar: () => void;
+}) {
+  const primer = asesora.split(" ")[0];
   return (
-    <div className="flex items-center gap-3.5 pt-5 pb-1.5">
-      <div aria-hidden className="font-display grid size-12 flex-none place-items-center rounded-full bg-azul text-lg font-semibold text-white">
-        {iniciales}
-      </div>
-      <div>
-        <b className="font-display block text-lg leading-tight">{corto}</b>
-        <span className="text-[15px] text-texto-2">Tu asesora Suzuki en Fersautos, sede {sede}</span>
-      </div>
-    </div>
-  );
-}
-
-function Bienvenida({ hayBorrador, alEmpezar, alReiniciar }: { hayBorrador: boolean; alEmpezar: () => void; alReiniciar: () => void }) {
-  return (
-    <section>
-      <h1 className="font-display mt-6 mb-3 text-[clamp(30px,8vw,42px)] leading-[1.05] font-bold">
-        Solicita tu crédito Suzuki desde el celular
-      </h1>
-      <p className="max-w-[60ch] text-texto-2">
-        Llenas tus datos una sola vez, Natalia los revisa, confirma el valor del vehículo y envía tu solicitud a estudio de crédito.
-      </p>
-      <p className="mt-5 text-[15px] text-texto-2">Te toma unos 8 minutos. Ten a mano:</p>
-      <ul className="mt-2 border-t border-linea">
-        {[
-          "Tu cédula física, para tomarle foto por ambas caras",
-          "El valor aproximado de tus ingresos y gastos del mes",
-          "Nombre y celular de tres referencias: familiar, personal y comercial",
-        ].map((t) => (
-          <li key={t} className="flex gap-3 border-b border-linea py-3">
-            <span aria-hidden className="mt-2 size-2 flex-none rounded-sm bg-azul" />
-            {t}
-          </li>
-        ))}
-      </ul>
-      <div className="mt-6 flex flex-wrap gap-2.5">
-        <button type="button" onClick={alEmpezar} className="min-h-[50px] rounded-xl bg-azul px-6 font-semibold text-white hover:bg-azul-hover">
-          {hayBorrador ? "Continuar donde quedé" : "Empezar solicitud"}
-        </button>
-        {hayBorrador && (
-          <button type="button" onClick={alReiniciar} className="min-h-[50px] rounded-xl border border-linea-2 bg-superficie px-6 font-semibold">
-            Empezar de nuevo
-          </button>
-        )}
+    <section className="relative isolate">
+      <div
+        aria-hidden
+        className="cat-mancha pointer-events-none absolute -top-40 -right-48 -z-10 hidden size-[540px] rounded-[42%_58%_55%_45%] bg-linea/50 lg:block"
+      />
+      <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 pt-8 pb-16 sm:pt-14 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div>
+          <p className="cred-llega text-[15px] font-semibold text-azul-texto">Unos 8 minutos · desde el celular</p>
+          <h1
+            className="cred-llega mt-2 font-display text-[clamp(36px,9vw,64px)] leading-[1.03] font-semibold tracking-[-0.02em] text-balance text-tinta"
+            style={{ animationDelay: "0.06s" }}
+          >
+            Solicita tu crédito Suzuki
+          </h1>
+          <p className="cred-llega mt-4 max-w-[56ch] text-lg leading-relaxed text-texto-4" style={{ animationDelay: "0.12s" }}>
+            Llenas tus datos una sola vez, {primer} los revisa, confirma el valor del vehículo y envía tu solicitud a estudio de crédito.
+          </p>
+          <p className="cred-llega mt-7 text-[15px] font-semibold text-texto-2" style={{ animationDelay: "0.18s" }}>
+            Ten a mano:
+          </p>
+          <ul className="cred-campos mt-3 grid gap-2.5">
+            {[
+              ["Tu cédula física", "para tomarle foto por ambas caras"],
+              ["Tus ingresos y gastos", "el valor aproximado del mes"],
+              ["Tres referencias", "nombre y celular: familiar, personal y comercial"],
+            ].map(([t, d], i) => (
+              <li key={t} className="flex items-center gap-3.5 rounded-2xl border border-linea bg-superficie px-4 py-3.5">
+                <span className="grid size-9 flex-none place-items-center rounded-full bg-acento font-display font-semibold text-white">{i + 1}</span>
+                <span className="leading-snug">
+                  <strong className="block text-tinta">{t}</strong>
+                  <span className="text-[15px] text-texto-2">{d}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="cred-llega mt-8 flex flex-col gap-2.5 sm:flex-row" style={{ animationDelay: "0.5s" }}>
+            <button
+              type="button"
+              onClick={alEmpezar}
+              className="cred-boton min-h-[58px] rounded-2xl bg-acento px-9 text-lg font-bold text-white hover:bg-acento-hover"
+            >
+              {hayBorrador ? "Continuar donde quedé" : "Empezar solicitud"}
+            </button>
+            {hayBorrador && (
+              <button type="button" onClick={alReiniciar} className="min-h-[58px] rounded-2xl border-[1.5px] border-linea-2 bg-superficie px-7 font-semibold">
+                Empezar de nuevo
+              </button>
+            )}
+          </div>
+          <p className="cred-llega mt-5 flex items-center gap-2 text-sm text-texto-2" style={{ animationDelay: "0.6s" }}>
+            <svg viewBox="0 0 24 24" aria-hidden className="size-[18px] flex-none fill-none stroke-ok stroke-2 [stroke-linecap:round] [stroke-linejoin:round]">
+              <path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z" />
+              <path d="M9 12l2 2 4-4" />
+            </svg>
+            Tus datos solo los ve {primer} y la entidad financiera.
+          </p>
+        </div>
+        <aside className="cred-llega rounded-[28px] bg-[#14213d] p-6 text-white" style={{ animationDelay: "0.25s" }}>
+          <div className="flex items-center gap-3.5">
+            <Iniciales nombre={asesora} grande />
+            <p className="leading-snug">
+              <strong className="block font-display text-xl">{asesora}</strong>
+              <span className="text-[15px] text-[#c3cbe0]">Tu asesora Suzuki · sede {sede}</span>
+            </p>
+          </div>
+          <ol className="mt-5 space-y-3 border-t border-[#2a3b62] pt-5">
+            {["Llenas la solicitud", `${primer} la revisa y la radica`, "Te avisa la respuesta"].map((t, i) => (
+              <li key={t} className="flex items-center gap-3">
+                <span className="grid size-8 flex-none place-items-center rounded-full bg-[#f29b72] font-display font-semibold text-[#14213d]">{i + 1}</span>
+                {t}
+              </li>
+            ))}
+          </ol>
+        </aside>
       </div>
     </section>
   );
 }
 
-function Confirmacion({ radicado, nombre, celular, whatsapp, asesora }: { radicado: string; nombre: string; celular: string; whatsapp: string | null; asesora: string }) {
+function Confirmacion({
+  radicado,
+  nombre,
+  celular,
+  whatsapp,
+  asesora,
+}: {
+  radicado: string;
+  nombre: string;
+  celular: string;
+  whatsapp: string | null;
+  asesora: string;
+}) {
   const mensaje = encodeURIComponent(`Hola ${asesora}, acabo de enviar mi solicitud de crédito. Mi radicado es ${radicado}.`);
   return (
-    <section className="pt-2 pb-10">
-      <span className="mt-5 inline-block rounded-md bg-ok-fondo px-3 py-1.5 text-[15px] font-semibold text-ok">Solicitud recibida</span>
-      <h1 className="font-display mt-3 text-[clamp(30px,8vw,42px)] leading-[1.05] font-bold">
+    <section className="mx-auto max-w-2xl px-5 pt-10 pb-16 sm:pt-14">
+      <svg viewBox="0 0 64 64" aria-hidden className="size-20">
+        <circle className="cred-trazo" pathLength={1} cx="32" cy="32" r="29" fill="none" stroke="var(--ok)" strokeWidth="4" />
+        <path
+          className="cred-trazo"
+          pathLength={1}
+          d="M19 33l9 9 18-19"
+          fill="none"
+          stroke="var(--ok)"
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ animationDelay: "0.6s" }}
+        />
+      </svg>
+      <p className="cred-llega mt-5 text-[15px] font-semibold text-ok">Solicitud recibida</p>
+      <h1
+        className="cred-llega mt-2 font-display text-[clamp(32px,8vw,52px)] leading-[1.05] font-semibold text-balance text-tinta"
+        style={{ animationDelay: "0.1s" }}
+      >
         Listo{nombre ? `, ${nombre}` : ""}. {asesora} ya tiene tu solicitud
       </h1>
-      <p className="mt-3 text-texto-2">Guarda este número por si necesitas consultar el estado:</p>
-      <p className="font-display mt-1.5 text-[34px] font-bold tracking-wide">{radicado}</p>
-      <h2 className="font-display mt-7 text-xl font-semibold">Lo que sigue</h2>
-      <ol className="mt-2 space-y-0">
+      <div className="cred-llega mt-6 rounded-[22px] bg-[#14213d] p-5 text-white" style={{ animationDelay: "0.2s" }}>
+        <p className="text-sm text-[#c3cbe0]">Guarda este número por si necesitas consultar el estado:</p>
+        <p className="mt-1 font-display text-[34px] font-semibold tracking-wide">{radicado}</p>
+      </div>
+      <h2 className="cred-llega mt-8 font-display text-2xl font-semibold text-tinta" style={{ animationDelay: "0.3s" }}>
+        Lo que sigue
+      </h2>
+      <ol className="cred-campos mt-3 grid gap-2.5">
         {[
           `${asesora} revisa tus datos y confirma el valor del vehículo.`,
           "Envía tu solicitud a estudio de crédito con la entidad financiera.",
           `Te contacta al ${celular || "celular que registraste"} con la respuesta.`,
         ].map((t, i) => (
-          <li key={t} className="flex gap-3 border-b border-linea py-2.5">
-            <span className="grid size-7 flex-none place-items-center rounded-full bg-cielo text-[15px] font-semibold text-azul-texto">{i + 1}</span>
+          <li key={t} className="flex items-center gap-3.5 rounded-2xl border border-linea bg-superficie px-4 py-3.5">
+            <span className="grid size-8 flex-none place-items-center rounded-full bg-acento font-display font-semibold text-white">{i + 1}</span>
             {t}
           </li>
         ))}
@@ -945,8 +1074,11 @@ function Confirmacion({ radicado, nombre, celular, whatsapp, asesora }: { radica
           href={`https://wa.me/57${whatsapp}?text=${mensaje}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-6 inline-flex min-h-[50px] items-center rounded-xl bg-azul px-6 font-semibold text-white"
+          className="cat-pulso relative mt-7 flex min-h-[58px] items-center justify-center gap-2.5 rounded-2xl bg-whatsapp px-7 text-lg font-bold text-whatsapp-texto sm:inline-flex"
         >
+          <svg viewBox="0 0 24 24" aria-hidden className="size-[22px] fill-none stroke-current stroke-[1.9] [stroke-linecap:round] [stroke-linejoin:round]">
+            <path d="M4 20l1.4-4A8 8 0 1112 20a8 8 0 01-4-1z" />
+          </svg>
           Escribirle a {asesora}
         </a>
       )}

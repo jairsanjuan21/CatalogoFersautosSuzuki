@@ -46,7 +46,7 @@ function Envoltura({
   const Contenedor = comoGrupo ? "fieldset" : "div";
   return (
     <Contenedor data-campo={id} className={`min-w-0 border-0 p-0 ${media ? "col-span-2 sm:col-span-1" : "col-span-2"}`}>
-      <Etiqueta {...(!comoGrupo && { htmlFor: id })} className="mb-1.5 block p-0 text-[15px] font-semibold">
+      <Etiqueta {...(!comoGrupo && { htmlFor: id })} className="mb-1 block p-0 text-[15px] font-semibold text-texto-2">
         {etiqueta}
         {opcional && <span className="font-normal text-texto-2"> (opcional)</span>}
       </Etiqueta>
@@ -65,8 +65,9 @@ function Envoltura({
   );
 }
 
-const claseInput = (error?: string) =>
-  `min-h-12 w-full rounded-lg border bg-superficie px-3 text-[17px] outline-none focus:border-azul focus:ring-2 focus:ring-azul/40 ${
+// Campos subrayados y grandes (propuesta I). 18 px: en iPhone, menos de 16 px hace zoom al tocar el campo.
+const claseInput = (error?: string, grande?: boolean) =>
+  `min-h-[52px] w-full rounded-none border-0 border-b-[2.5px] bg-transparent px-0.5 ${grande ? "font-display text-[28px] sm:text-[32px]" : "text-lg"} font-semibold text-tinta outline-none transition-colors placeholder:font-normal placeholder:text-texto-3 focus:border-acento ${
     error ? "border-senal" : "border-linea-2"
   }`;
 
@@ -168,7 +169,7 @@ export function Dinero(b: Base) {
         }}
         aria-invalid={!!error}
         aria-describedby={describe(id, b.ayuda, error)}
-        className={claseInput(error)}
+        className={claseInput(error, true)}
       />
     </Envoltura>
   );
@@ -206,13 +207,15 @@ export function Seleccion({ opciones, ...b }: Base & { opciones: Record<string, 
 export function Chips<T extends string | number | boolean>({
   opciones,
   sufijo = "",
+  rejilla,
   ...b
-}: Base & { opciones: [T, string][]; sufijo?: string }) {
+}: Base & { opciones: [T, string][]; sufijo?: string; rejilla?: boolean }) {
   const id = useId();
   const { valor, cambiar, error } = useCampo(b.ruta);
   return (
     <Envoltura id={id} {...b} error={error} comoGrupo>
-      <div className="flex flex-wrap gap-2" role="radiogroup" aria-describedby={describe(id, b.ayuda, error)}>
+      {/* rejilla: opciones cortas (plazos, estrato) en columnas parejas en el celular */}
+      <div className={rejilla ? "grid grid-cols-3 gap-2 sm:flex sm:flex-wrap" : "flex flex-wrap gap-2"} role="radiogroup" aria-describedby={describe(id, b.ayuda, error)}>
         {opciones.map(([v, t]) => {
           const activo = valor === v;
           return (
@@ -222,10 +225,8 @@ export function Chips<T extends string | number | boolean>({
               role="radio"
               aria-checked={activo}
               onClick={() => cambiar(v)}
-              className={`min-h-11 rounded-lg border px-3.5 text-base ${
-                activo
-                  ? "border-azul bg-azul font-semibold text-white"
-                  : `bg-superficie ${error ? "border-senal" : "border-linea-2"}`
+              className={`min-h-12 rounded-full border-[1.5px] ${rejilla ? "px-2 sm:px-5" : "px-5"} text-base font-semibold whitespace-nowrap transition duration-200 hover:-translate-y-0.5 active:scale-95 ${
+                activo ? "border-azul bg-azul text-white" : `bg-superficie/80 text-texto-4 ${error ? "border-senal" : "border-linea-2"}`
               }`}
             >
               {t}
@@ -250,7 +251,7 @@ export function Interruptor({
   children: ReactNode;
 }) {
   return (
-    <label className="col-span-2 flex cursor-pointer items-center gap-3 rounded-xl border border-linea-2 bg-superficie p-3.5 font-semibold">
+    <label className="col-span-2 flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl border-[1.5px] border-linea-2 bg-superficie p-4 font-semibold transition hover:border-tinta">
       <input type="checkbox" checked={activo} onChange={(e) => alCambiar(e.target.checked)} className="peer sr-only" />
       <span
         aria-hidden
@@ -265,13 +266,13 @@ export function Interruptor({
 
 export function Subtitulo({ children, nota }: { children: ReactNode; nota?: string }) {
   return (
-    <div className="col-span-2 mt-2 border-t border-linea pt-4 first:mt-0 first:border-0 first:pt-0">
-      <h3 className="font-display text-xl font-semibold">{children}</h3>
+    <div className="col-span-2 mt-3 border-t border-linea pt-6 first:mt-0 first:border-0 first:pt-0">
+      <h3 className="font-display text-2xl font-semibold text-tinta">{children}</h3>
       {nota && <p className="mt-1 text-[15px] text-texto-2">{nota}</p>}
     </div>
   );
 }
 
 export function Nota({ children }: { children: ReactNode }) {
-  return <p className="col-span-2 rounded-lg bg-cielo p-3.5 text-[15px]">{children}</p>;
+  return <p className="col-span-2 rounded-2xl bg-cielo p-4 text-[15px]">{children}</p>;
 }
