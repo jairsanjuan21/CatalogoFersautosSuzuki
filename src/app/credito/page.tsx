@@ -20,8 +20,9 @@ export const metadata: Metadata = {
 
 export default function Credito() {
   return (
-    <main className="mx-auto max-w-2xl px-5">
-      <Suspense fallback={<p className="pt-10 text-texto-2">Cargando formulario…</p>}>
+    // Mismo tema cálido del catálogo (.catalogo en globals.css)
+    <main className="catalogo">
+      <Suspense fallback={<p className="mx-auto max-w-6xl px-5 pt-10 text-texto-2">Cargando formulario…</p>}>
         <Cargar />
       </Suspense>
     </main>
@@ -37,11 +38,11 @@ async function Cargar() {
   const [[conf], [clausula], lineas] = await Promise.all([
     db.select().from(configuracion).limit(1),
     db.select().from(clausulas).orderBy(desc(clausulas.version)).limit(1),
-    db.select({ linea: modelos.linea }).from(modelos).where(eq(modelos.visible, true)).orderBy(asc(modelos.orden)),
+    db.select({ linea: modelos.linea, tipo: modelos.tipo }).from(modelos).where(eq(modelos.visible, true)).orderBy(asc(modelos.orden)),
   ]);
 
   if (!conf || !clausula) {
-    return <p className="pt-10 text-senal">El formulario aún no está configurado. Corre npm run db:seed.</p>;
+    return <p className="mx-auto max-w-6xl px-5 pt-10 text-senal">El formulario aún no está configurado. Corre npm run db:seed.</p>;
   }
 
   return (
@@ -56,6 +57,7 @@ async function Cargar() {
         plazos: conf.plazosMeses,
         clausula: { version: clausula.version, texto: clausula.texto },
         lineas: lineas.map((l) => l.linea),
+        tipos: Object.fromEntries(lineas.map((l) => [l.linea, l.tipo])),
       }}
     />
   );

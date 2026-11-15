@@ -426,3 +426,26 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .cat-llega, .cat-foto, .cat-icono, .cat-panel > * { animation: none; opacity: 1; transform: none; }
 }
+
+/* --- Formulario de crédito (propuesta I) --------------------------------- */
+/* Cada paso entra desde abajo y desenfocado; los campos lo siguen uno a uno */
+.cred-llega { animation: cred-llega 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes cred-llega { from { opacity: 0; transform: translateY(32px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+.cred-campos > * { animation: cat-entra 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: 0.45s; }
+.cred-campos > :nth-child(1) { animation-delay: 0.2s; }
+.cred-campos > :nth-child(2) { animation-delay: 0.25s; }
+.cred-campos > :nth-child(3) { animation-delay: 0.3s; }
+.cred-campos > :nth-child(4) { animation-delay: 0.35s; }
+.cred-campos > :nth-child(5) { animation-delay: 0.4s; }
+/* Botón principal: un brillo lo cruza cada pocos segundos */
+.cred-boton { position: relative; overflow: hidden; }
+.cred-boton::after { content: ""; position: absolute; top: -30%; bottom: -30%; left: 0; width: 30%; pointer-events: none;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 0.35), transparent); animation: cred-brillo 3s ease 1.5s infinite; }
+@keyframes cred-brillo { from { transform: translateX(-150%) skewX(-18deg); } to { transform: translateX(380%) skewX(-18deg); } }
+/* Confirmación: el círculo y el chulo se dibujan */
+.cred-trazo { stroke-dasharray: 1; stroke-dashoffset: 1; animation: cred-trazo 0.8s cubic-bezier(0.6, 0, 0.2, 1) both; }
+@keyframes cred-trazo { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .cred-llega, .cred-campos > *, .cred-trazo { animation: none; opacity: 1; transform: none; filter: none; stroke-dashoffset: 0; }
+  .cred-boton::after { animation: none; }
+}
