@@ -19,7 +19,7 @@ async function main() {
   if (!fila) throw new Error(`No existe la solicitud ${values.radicado}`);
 
   await mkdir("pdf-pruebas", { recursive: true });
-  for (const tipo of ["formulario", "cedula"] as const) {
+  for (const tipo of ["formulario", "cedula", "completo"] as const) {
     try {
       const doc = await generarDocumento(fila.id, tipo);
       await writeFile(`pdf-pruebas/${doc.nombre}`, doc.bytes);

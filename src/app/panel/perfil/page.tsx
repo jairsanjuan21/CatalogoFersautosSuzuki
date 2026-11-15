@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { exigirRol } from "@/lib/sesion";
 import { BotonSalir } from "@/componentes/BotonSalir";
+import { CambiarClave } from "@/componentes/CambiarClave";
 import { datosAsesora } from "@/modulos/catalogo/consultas";
 import { Cargando, Titulo } from "../componentes";
 import { FormularioPerfil } from "./FormularioPerfil";
@@ -31,6 +32,8 @@ async function Contenido() {
         <span className="text-texto-2">{usuario.email}</span>
         <BotonSalir />
       </div>
+      <h2 className="font-display mt-8 mb-2.5 text-[22px] font-semibold">Cambiar mi contraseña</h2>
+      <CambiarClave />
     </>
   );
 }

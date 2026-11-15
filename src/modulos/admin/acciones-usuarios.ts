@@ -58,3 +58,23 @@ export async function restablecerClave(userId: string): Promise<ResultadoAdmin &
   refresh();
   return { ok: true, clave, mensaje: "Contraseña temporal creada. Se cerraron sus sesiones abiertas." };
 }
+
+/**
+ * El admin escribe la contraseña nueva de Natalia (por si perdió u olvidó la suya).
+ * Se cierran sus sesiones abiertas; el admin se la dicta y ella la cambia desde su perfil.
+ */
+export async function fijarClave(userId: string, nueva: string): Promise<ResultadoAdmin> {
+  const { usuarioId, ip } = await exigirAdmin();
+  const u = await cuentaDeAsesora(userId);
+  if (!u) return { ok: false, mensaje: "Cuenta no válida." };
+  const v = z.string().min(10, "Mínimo 10 caracteres.").max(128, "Es demasiado larga.").safeParse(nueva);
+  if (!v.success) return { ok: false, mensaje: v.error.issues[0].message };
+  const hash = await (await auth.$context).password.hash(v.data);
+  await db.transaction(async (tx) => {
+    await tx.update(t.account).set({ password: hash, updatedAt: new Date() }).where(and(eq(t.account.userId, userId), eq(t.account.providerId, "credential")));
+    await tx.delete(t.session).where(eq(t.session.userId, userId));
+    await tx.insert(t.auditoria).values({ actor: "admin", usuarioId, accion: "Cambió la contraseña de la asesora", entidad: "user", entidadId: u.name, ip });
+  });
+  refresh();
+  return { ok: true, mensaje: "Contraseña cambiada. Se cerraron sus sesiones abiertas: entra con la nueva." };
+}
