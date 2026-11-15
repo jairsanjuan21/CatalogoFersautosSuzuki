@@ -264,7 +264,8 @@ export const modelos = pgTable(
     check("modelos_puestos", sql`${t.puestos} between 1 and 9`),
     check("modelos_video", sql`${t.videoYoutube} is null or ${t.videoYoutube} ~ '^[A-Za-z0-9_-]{11}$'`),
     check("modelos_slug_formato", sql`${t.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`),
-    check("modelos_descripcion_corta", sql`char_length(${t.descripcion}) <= 140`),
+    // Tope amplio solo para frenar textos absurdos; la descripción puede ser larga y llamativa
+    check("modelos_descripcion_larga", sql`char_length(${t.descripcion}) <= 1500`),
     check("modelos_baul_corto", sql`char_length(${t.baul}) <= 80`),
     check("modelos_seguridad_max", sql`coalesce(array_length(${t.seguridad}, 1), 0) <= 15`),
     check(

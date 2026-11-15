@@ -5,11 +5,12 @@ import { ErrorIA, pedirAGemini } from "./gemini";
 /* ============================================================================
    DESCRIPCIONES DEL CATÁLOGO CON GEMINI (plan gratuito)
    La IA solo REDACTA: recibe los datos que ya están en el catálogo y propone
-   tres descripciones cortas. Natalia elige una, la ajusta si quiere y guarda.
+   tres descripciones llamativas. Natalia elige una, la ajusta si quiere y guarda.
    Nunca se publica nada sin que ella lo vea.
    ========================================================================== */
 
-export const MAX_DESCRIPCION = 140;
+export const MAX_DESCRIPCION = 600; // para la IA: llamativa pero que se lea completa en el celular
+const MIN_DESCRIPCION = 150;
 
 export { ErrorIA };
 
@@ -26,7 +27,7 @@ export interface DatosVehiculo {
 
 const esquema = z.object({
   opciones: z
-    .array(z.string().describe(`Una descripción de máximo ${MAX_DESCRIPCION} caracteres, en una o dos frases.`))
+    .array(z.string().describe(`Una descripción de ${MIN_DESCRIPCION} a ${MAX_DESCRIPCION} caracteres, de dos a cuatro frases.`))
     .min(1)
     .max(3)
     .describe("Tres descripciones distintas entre sí."),
@@ -46,10 +47,10 @@ function instrucciones(d: DatosVehiculo) {
     .join("\n");
   return `Eres redactor del catálogo web de Natalia Sierra, asesora de ventas de Suzuki en Fersautos, Cúcuta (Colombia).
 
-Escribe TRES descripciones cortas y distintas para la tarjeta de este vehículo en el catálogo.
+Escribe TRES descripciones llamativas y distintas para la ficha de este vehículo en el catálogo.
 
 Reglas:
-1. Máximo ${MAX_DESCRIPCION} caracteres cada una, contando espacios. Una o dos frases.
+1. Entre ${MIN_DESCRIPCION} y ${MAX_DESCRIPCION} caracteres cada una, contando espacios. De dos a cuatro frases que den ganas de conocer el carro: empieza con algo que enganche.
 2. Español de Colombia, cercano y claro, tuteando al cliente. Sin signos de exclamación seguidos ni mayúsculas sostenidas.
 3. Habla del uso real: ciudad, carretera, familia, ahorro de combustible, espacio, terreno. Elige lo que encaje con el tipo y el combustible.
 4. Usa SOLO los datos de abajo. No inventes cifras, consumos, equipamiento, premios ni comparaciones con otras marcas.
@@ -72,8 +73,8 @@ export async function sugerirDescripciones(d: DatosVehiculo): Promise<string[]> 
   } catch {
     throw new ErrorIA("La IA respondió algo que no se puede usar. Intenta de nuevo.");
   }
-  // Gemini a veces se pasa del límite: esas se descartan en vez de cortarlas a la mitad de una palabra
-  const validas = [...new Set(opciones.map((o) => o.replace(/\s+/g, " ").trim()))].filter((o) => o.length >= 20 && o.length <= MAX_DESCRIPCION);
+  // Gemini a veces se pasa del largo pedido: con un margen se aceptan; las muy largas se descartan en vez de cortarlas
+  const validas = [...new Set(opciones.map((o) => o.replace(/\s+/g, " ").trim()))].filter((o) => o.length >= 60 && o.length <= MAX_DESCRIPCION + 100);
   if (!validas.length) throw new ErrorIA("Las descripciones salieron muy largas. Intenta de nuevo.");
   return validas;
 }

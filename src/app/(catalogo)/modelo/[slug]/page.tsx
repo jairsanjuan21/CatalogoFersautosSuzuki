@@ -20,7 +20,10 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   // Los buscadores reciben los metadatos antes que la página: así obtienen un 404 real
   if (!m) notFound();
   const titulo = `Suzuki ${m.linea} con Natalia | Fersautos Cúcuta`;
-  const descripcion = m.precio ? `Desde ${plata(m.precio)}. ${m.descripcion ?? ""}` : (m.descripcion ?? `Cotiza tu Suzuki ${m.linea}.`);
+  // Para Google y la vista previa al compartir: la descripción puede ser larga, aquí va un resumen
+  const resumen = (m.descripcion ?? "").replace(/\s+/g, " ").trim();
+  const corto = resumen.length > 150 ? resumen.slice(0, resumen.lastIndexOf(" ", 147)) + "…" : resumen;
+  const descripcion = m.precio ? `Desde ${plata(m.precio)}. ${corto}` : corto || `Cotiza tu Suzuki ${m.linea}.`;
   return { title: titulo, description: descripcion, openGraph: { title: `Suzuki ${m.linea}`, description: descripcion, locale: "es_CO" } };
 }
 
@@ -93,7 +96,7 @@ async function Contenido({ params }: { params: Params }) {
         <p className="mt-1 text-[17px] text-texto-2">
           {TIPO_TEXTO[m.tipo]}, {m.puestos} puestos
         </p>
-        {m.descripcion && <p className="mt-3.5">{m.descripcion}</p>}
+        {m.descripcion && <p className="mt-3.5 leading-relaxed whitespace-pre-line">{m.descripcion}</p>}
 
         <div className="mt-5 rounded-xl border border-linea bg-superficie p-4">
           {m.entrada ? (

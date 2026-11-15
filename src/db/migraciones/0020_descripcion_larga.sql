@@ -1,0 +1,2 @@
+ALTER TABLE "modelos" DROP CONSTRAINT "modelos_descripcion_corta";--> statement-breakpoint
+ALTER TABLE "modelos" ADD CONSTRAINT "modelos_descripcion_larga" CHECK (char_length("modelos"."descripcion") <= 1500);

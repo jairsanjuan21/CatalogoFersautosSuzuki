@@ -167,8 +167,18 @@ export function FormularioModelo({ m }: { m: ModeloEditable }) {
             ))}
           </select>
         </Campo>
-        <Campo id="descripcion" error={err.descripcion} etiqueta="Descripción corta" ancho>
-          <textarea id="descripcion" name="descripcion" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} maxLength={140} aria-invalid={!!err.descripcion} className={`${claseInput} min-h-20 py-2`} />
+        <Campo id="descripcion" error={err.descripcion} etiqueta="Descripción" ancho>
+          <textarea
+            id="descripcion"
+            name="descripcion"
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+            maxLength={1500}
+            rows={5}
+            placeholder="Cuéntale al cliente por qué este carro es para él. Puedes usar varios párrafos."
+            aria-invalid={!!err.descripcion}
+            className={`${claseInput} min-h-32 py-2 leading-relaxed`}
+          />
           <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
             <button
               type="button"
@@ -181,12 +191,12 @@ export function FormularioModelo({ m }: { m: ModeloEditable }) {
               </svg>
               {pensando ? "Escribiendo…" : opcionesIA.length ? "Otras ideas con IA" : "Sugerir con IA"}
             </button>
-            <p className="text-[13px] text-texto-2">{descripcion.length}/140</p>
+            <p className={`text-[13px] ${descripcion.length > 1400 ? "text-ambar" : "text-texto-2"}`}>{descripcion.length.toLocaleString("es-CO")} caracteres</p>
           </div>
           {avisoIA && <p role="alert" className="mt-2 text-sm text-senal">{avisoIA}</p>}
           {opcionesIA.length > 0 && (
             <div className="mt-2 rounded-lg border border-linea bg-superficie-2 p-2.5">
-              <p className="mb-1.5 text-[13px] text-texto-2">Toca una para usarla. Puedes editarla antes de guardar.</p>
+              <p className="mb-1.5 text-[13px] text-texto-2">Toca una para usarla. Puedes editarla o alargarla antes de guardar.</p>
               <ul className="space-y-1.5">
                 {opcionesIA.map((o) => (
                   <li key={o}>

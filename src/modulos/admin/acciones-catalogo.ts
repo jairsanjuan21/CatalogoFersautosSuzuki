@@ -62,7 +62,12 @@ const esquemaModelo = z.object({
   motor: z.string().trim().max(60).transform((v) => v || null),
   transmision: z.string().trim().max(60).transform((v) => v || null),
   combustible: z.enum(["", ...t.combustible.enumValues]).transform((v) => (v === "" ? null : v)),
-  descripcion: z.string().trim().max(140, { error: "Máximo 140 caracteres." }).transform((v) => v || null),
+  // Se respetan los saltos de línea (párrafos); solo se limpian espacios repetidos dentro de cada línea
+  descripcion: z
+    .string()
+    .transform((v) => v.replace(/\r\n?/g, "\n").replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim())
+    .refine((v) => v.length <= 1500, { error: "Máximo 1.500 caracteres." })
+    .transform((v) => v || null),
   orden: z.coerce.number().int().min(0).max(99),
   visible: z.preprocess((v) => v === "on", z.boolean()),
   mostrarPrecio: z.preprocess((v) => v === "on", z.boolean()),
