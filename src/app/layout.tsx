@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { Barlow_Semi_Condensed, Inter, Source_Sans_3 } from "next/font/google";
+import { Barlow_Semi_Condensed, Fraunces, Inter, Source_Sans_3 } from "next/font/google";
 import "./globals.css";
 import { SCRIPT_TEMA } from "@/lib/tema";
 import { Presencia } from "@/componentes/Presencia";
@@ -21,6 +21,12 @@ const sans = Source_Sans_3({
   subsets: ["latin"],
 });
 
+// Fraunces: títulos del catálogo público (propuesta C, "Natalia primero")
+const serif = Fraunces({
+  variable: "--font-serif-base",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: "Estrena tu Suzuki con Natalia Sierra | Fersautos Cúcuta",
   description: "Catálogo Suzuki y solicitud de crédito en línea con Natalia Sierra, Fersautos sede Diagonal Santander.",
@@ -29,7 +35,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     // suppressHydrationWarning: el script cambia data-tema antes de que React hidrate
-    <html lang="es" className={`${display.variable} ${sans.variable} ${panel.variable}`} suppressHydrationWarning>
+    <html lang="es" className={`${display.variable} ${sans.variable} ${panel.variable} ${serif.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
       </head>

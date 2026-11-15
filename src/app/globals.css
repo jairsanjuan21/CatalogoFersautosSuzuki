@@ -259,3 +259,155 @@ body {
   .ingreso-chulo { animation: none; stroke-dashoffset: 0; }
   .ingreso-giro { animation-duration: 1.6s; }
 }
+
+/* ===========================================================================
+   CATÁLOGO PÚBLICO (propuesta C: "Natalia primero")
+   Tema cálido solo dentro de .catalogo: los paneles no cambian. Las páginas del
+   catálogo siguen usando las clases de siempre (bg-azul, text-texto-2, font-display…),
+   aquí solo se redefinen sus valores.
+   ======================================================================== */
+.catalogo {
+  --fondo: #faf6f0;
+  --superficie: #ffffff;
+  --superficie-2: #fdfaf5;
+  --texto: #1c2333;
+  --texto-2: #545d6e;
+  --texto-3: #5b6475;
+  --texto-4: #39425a;
+  --linea: #eadfce;
+  --linea-2: #d8cbb6;
+  --divisor: #f1e8db;
+  --cielo: #f1e8db;
+  --azul: #14213d;
+  --azul-hover: #0b1529;
+  --azul-texto: #a8340d;
+  --acento: #b4380f;
+  --acento-hover: #962d0b;
+  --tinta: #14213d;
+  --whatsapp: #25d366;
+  --whatsapp-texto: #06240f;
+  --font-display: var(--font-serif-base);
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: var(--font-panel-base), system-ui, sans-serif;
+  min-height: 100dvh;
+  overflow-x: clip; /* la banda de modelos va de borde a borde */
+}
+:root[data-tema="oscuro"] .catalogo {
+  --fondo: #13151b;
+  --superficie: #1c1f27;
+  --superficie-2: #181a21;
+  --texto: #f4eee5;
+  --texto-2: #b9b2a6;
+  --texto-3: #a8a297;
+  --texto-4: #ddd6ca;
+  --linea: #2c2f38;
+  --linea-2: #3a3e49;
+  --divisor: #24272f;
+  --cielo: #262a34;
+  --azul: #34508f;
+  --azul-hover: #3f5ea3;
+  --azul-texto: #f29b72;
+  --acento: #c2461a;
+  --acento-hover: #d2541f;
+  --tinta: #f4eee5;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) .catalogo {
+    --fondo: #13151b;
+    --superficie: #1c1f27;
+    --superficie-2: #181a21;
+    --texto: #f4eee5;
+    --texto-2: #b9b2a6;
+    --texto-3: #a8a297;
+    --texto-4: #ddd6ca;
+    --linea: #2c2f38;
+    --linea-2: #3a3e49;
+    --divisor: #24272f;
+    --cielo: #262a34;
+    --azul: #34508f;
+    --azul-hover: #3f5ea3;
+    --azul-texto: #f29b72;
+    --acento: #c2461a;
+    --acento-hover: #d2541f;
+    --tinta: #f4eee5;
+  }
+}
+
+@theme inline {
+  --color-acento: var(--acento);
+  --color-acento-hover: var(--acento-hover);
+  --color-tinta: var(--tinta);
+  --color-whatsapp: var(--whatsapp);
+  --color-whatsapp-texto: var(--whatsapp-texto);
+}
+
+/* --- Animaciones del catálogo -------------------------------------------- */
+
+/* Palabras del titular que suben una tras otra (el retraso va en style) */
+.cat-palabra { display: inline-block; opacity: 0; transform: translateY(0.6em) rotate(2deg); filter: blur(6px);
+  animation: cat-palabra 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+@keyframes cat-palabra { to { opacity: 1; transform: none; filter: none; } }
+
+/* Bloques que entran al cargar, con retraso propio en style */
+.cat-entra { opacity: 0; transform: translateY(18px); animation: cat-entra 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+@keyframes cat-entra { to { opacity: 1; transform: none; } }
+
+/* La foto de Natalia se descubre de abajo hacia arriba y hace un leve zoom */
+.cat-revela { clip-path: inset(100% 0 0 0 round 28px); animation: cat-revela 1.1s cubic-bezier(0.7, 0, 0.2, 1) 0.15s forwards; }
+@keyframes cat-revela { to { clip-path: inset(0 0 0 0 round 28px); } }
+.cat-revela > img, .cat-revela > span { transform: scale(1.18); animation: cat-zoom 1.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.15s forwards; }
+@keyframes cat-zoom { to { transform: scale(1); } }
+
+/* Tarjetita con el nombre: rebota al aparecer y luego flota suave */
+.cat-flota { opacity: 0; animation: cat-pop 0.6s cubic-bezier(0.34, 1.6, 0.64, 1) 1.1s forwards, cat-flota 5s ease-in-out 1.8s infinite; }
+@keyframes cat-pop { from { opacity: 0; transform: scale(0.6) translateY(20px); } to { opacity: 1; transform: none; } }
+@keyframes cat-flota { 0%, 100% { opacity: 1; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-8px); } }
+
+/* Sello circular que gira detrás de la esquina de la foto */
+.cat-sello { opacity: 0; animation: cat-entra 0.8s ease 1.3s forwards; }
+.cat-sello > svg:first-child { animation: cat-gira 22s linear infinite; }
+@keyframes cat-gira { to { transform: rotate(360deg); } }
+
+/* Mancha cálida detrás de la foto que "respira" */
+.cat-mancha { animation: cat-respira 9s ease-in-out infinite; }
+@keyframes cat-respira { 50% { transform: scale(1.12) rotate(8deg); border-radius: 46% 54% 38% 62% / 55% 40% 60% 45%; } }
+
+/* Botón de WhatsApp: ondas que salen cada pocos segundos */
+.cat-pulso { isolation: isolate; } /* la posición la pone cada botón (relative o fixed) */
+.cat-pulso::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--whatsapp); z-index: -1;
+  animation: cat-onda 2.6s ease-out 2s infinite; }
+@keyframes cat-onda { 0% { transform: scale(1); opacity: 0.55; } 70%, 100% { transform: scale(1.35, 1.6); opacity: 0; } }
+
+/* Brillo que cruza los botones principales al pasar el mouse */
+.cat-brillo { position: relative; overflow: hidden; }
+.cat-brillo::after { content: ""; position: absolute; top: -30%; bottom: -30%; left: 0; width: 35%; pointer-events: none;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 0.35), transparent); transform: translateX(-180%) skewX(-18deg); }
+.cat-brillo:hover::after { animation: cat-barrido 0.9s ease; }
+@keyframes cat-barrido { to { transform: translateX(420%) skewX(-18deg); } }
+
+/* Cinta con los nombres de los modelos que corre sin parar */
+.cat-cinta { animation: cat-cinta 38s linear infinite; }
+.cat-cinta-caja:hover .cat-cinta { animation-play-state: paused; }
+@keyframes cat-cinta { to { transform: translateX(-50%); } }
+
+/* Tarjetas de modelos: entran escalonadas (retraso en style) */
+.cat-carta { opacity: 0; transform: translateY(28px) scale(0.97); animation: cat-carta 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+@keyframes cat-carta { to { opacity: 1; transform: none; } }
+/* El carrito de la ilustración "arranca" al pasar el mouse */
+.cat-arranca { transition: transform 0.5s cubic-bezier(0.3, 1.4, 0.5, 1); }
+.group:hover .cat-arranca { transform: translateX(14px) rotate(-1.5deg); }
+
+/* Al hacer scroll: las secciones aparecen cuando entran en pantalla.
+   Solo en navegadores que lo soportan; los demás las muestran quietas. */
+@supports (animation-timeline: view()) {
+  .cat-al-ver { animation: cat-al-ver linear both; animation-timeline: view(); animation-range: entry 0% cover 28%; }
+  @keyframes cat-al-ver { from { opacity: 0; transform: translateY(48px) scale(0.98); } to { opacity: 1; transform: none; } }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cat-palabra, .cat-entra, .cat-flota, .cat-sello, .cat-carta { animation: none; opacity: 1; transform: none; filter: none; }
+  .cat-revela, .cat-revela > img, .cat-revela > span { animation: none; clip-path: none; transform: none; }
+  .cat-sello > svg:first-child, .cat-mancha, .cat-pulso::before, .cat-brillo::after, .cat-cinta, .cat-al-ver { animation: none; }
+  .cat-arranca { transition: none; }
+}
