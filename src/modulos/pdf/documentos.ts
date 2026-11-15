@@ -1,5 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
+import { PDFDocument } from "pdf-lib";
 import { db } from "@/db";
 import * as t from "@/db/esquema";
 import { almacenamiento } from "@/lib/almacenamiento";
@@ -7,7 +8,7 @@ import { obtenerSolicitudCompleta } from "@/modulos/solicitudes/consultar";
 import { generarFormularioFns01 } from "./formulario-fns01";
 import { generarPdfCedula } from "./cedula";
 
-export type TipoPdf = "formulario" | "cedula";
+export type TipoPdf = "formulario" | "cedula" | "completo";
 
 export class ErrorPdf extends Error {
   constructor(
@@ -39,15 +40,12 @@ export async function generarDocumento(solicitudId: string, tipo: TipoPdf) {
   };
   const base = `${paraArchivo(s.primerApellido)}${paraArchivo(s.segundoApellido ?? "")}_${s.numeroIdentificacion}`;
 
-  let bytes: Uint8Array;
-  let nombre: string;
-
-  if (tipo === "formulario") {
+  const formulario = async () => {
     if (s.valorVehiculo === null) {
       throw new ErrorPdf("SIN_VALOR", "Primero asigna el modelo y el valor del vehículo.");
     }
     const [[conf], firma] = await Promise.all([db.select().from(t.configuracion).limit(1), archivo("firma")]);
-    bytes = await generarFormularioFns01(
+    return generarFormularioFns01(
       s,
       {
         asesoraNombre: conf.asesoraNombre,
@@ -59,18 +57,40 @@ export async function generarDocumento(solicitudId: string, tipo: TipoPdf) {
       },
       firma,
     );
-    nombre = `FNS01_${base}.pdf`;
-  } else {
+  };
+  const cedula = async () => {
     const [frente, reves] = await Promise.all([archivo("cedula_frente"), archivo("cedula_reves")]);
     if (!frente || !reves) throw new ErrorPdf("SIN_ARCHIVOS", "Las fotos de la cédula ya no están disponibles.");
-    bytes = await generarPdfCedula({
+    return generarPdfCedula({
       nombre: [s.nombres, s.primerApellido, s.segundoApellido].filter(Boolean).join(" "),
       documento: `${s.tipoIdentificacion === "cc" ? "C.C." : "C.E."} ${Number(s.numeroIdentificacion).toLocaleString("es-CO")}`,
       radicado: s.radicado,
       frente,
       reves,
     });
+  };
+
+  let bytes: Uint8Array;
+  let nombre: string;
+
+  if (tipo === "formulario") {
+    bytes = await formulario();
+    nombre = `FNS01_${base}.pdf`;
+  } else if (tipo === "cedula") {
+    bytes = await cedula();
     nombre = `CEDULA_${base}.pdf`;
+  } else {
+    // Un solo archivo: primero el formulario maestro y a continuación la hoja de la cédula
+    const [f, c] = await Promise.all([formulario(), cedula()]);
+    const unido = await PDFDocument.create();
+    for (const origen of [f, c]) {
+      const pdf = await PDFDocument.load(origen);
+      (await unido.copyPages(pdf, pdf.getPageIndices())).forEach((p) => unido.addPage(p));
+    }
+    unido.setTitle(`Formulario y cédula ${s.radicado}`);
+    unido.setProducer("Sistema de solicitudes Fersautos");
+    bytes = await unido.save();
+    nombre = `FNS01_CEDULA_${base}.pdf`;
   }
 
   return {

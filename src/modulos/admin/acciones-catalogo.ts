@@ -2,7 +2,7 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, asc, count, eq, gte, inArray, max, ne, sql } from "drizzle-orm";
+import { and, asc, count, eq, max, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import * as t from "@/db/esquema";
@@ -15,6 +15,7 @@ import { nombreVersion, TIPO_VEHICULO } from "@/lib/formato";
 import { ErrorIA, sugerirDescripciones } from "@/modulos/ia/descripcion";
 import { sugerirFicha, type FichaSugerida } from "@/modulos/ia/ficha";
 import type { Fuente } from "@/modulos/ia/gemini";
+import { ACCION_FICHA, ACCION_IA, usoIA } from "@/modulos/ia/uso";
 
 export interface ResultadoAdmin {
   ok: boolean;
@@ -297,26 +298,9 @@ export async function guardarVideo(modeloId: string, enlace: string): Promise<Re
 
 /* ---------- descripción del modelo con IA (Gemini) ---------- */
 
-const ACCION_IA = "Pidió descripciones a la IA";
-const ACCION_FICHA = "Pidió la ficha técnica a la IA";
-
-/**
- * Tope mensual compartido por las dos funciones de IA: el plan gratuito de Gemini tiene límites
- * y esto evita gastarlos sin querer. Devuelve el mensaje si ya se llegó, o null.
- */
+/** El plan gratuito de Gemini tiene límites: el tope mensual evita gastarlos sin querer. Devuelve el mensaje si ya se llegó, o null. */
 async function topeIA() {
-  // Vacío, cero o algo que no sea número = el valor por defecto (un "IA_USOS_MES=" vacío dejaba el tope en 0)
-  const configurado = Number(process.env.IA_USOS_MES);
-  const tope = Number.isInteger(configurado) && configurado > 0 ? configurado : 200;
-  const [{ usados }] = await db
-    .select({ usados: count() })
-    .from(t.auditoria)
-    .where(
-      and(
-        inArray(t.auditoria.accion, [ACCION_IA, ACCION_FICHA]),
-        gte(t.auditoria.creadoEn, sql`date_trunc('month', now() at time zone 'America/Bogota') at time zone 'America/Bogota'`),
-      ),
-    );
+  const { usados, tope } = await usoIA();
   return usados >= tope ? `Se alcanzó el tope de ${tope} usos de la IA este mes.` : null;
 }
 const COMBUSTIBLES: Record<string, string> = { gasolina: "gasolina", hibrido: "híbrido", electrico: "eléctrico" };

@@ -99,7 +99,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
         ))}
       </div>
 
-      <div className="mt-4 grid grid-cols-4 gap-2">
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
         <a href={`tel:+57${s.celular}`} className={boton}>Llamar</a>
         <a href={`https://wa.me/57${s.celular}?text=${mensajeWa}`} target="_blank" rel="noopener noreferrer" className={boton}>WhatsApp</a>
         {s.valorVehiculo !== null ? (
@@ -111,6 +111,11 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
           <a href={`/api/solicitudes/${s.id}/pdf?tipo=cedula`} className={boton}>PDF cédula</a>
         ) : (
           <span aria-disabled className={`${boton} opacity-50`}>PDF cédula</span>
+        )}
+        {s.valorVehiculo !== null && tieneCedula ? (
+          <a href={`/api/solicitudes/${s.id}/pdf?tipo=completo`} className={`${boton} col-span-2 sm:col-span-1`}>PDF formulario + cédula</a>
+        ) : (
+          <span aria-disabled className={`${boton} col-span-2 opacity-50 sm:col-span-1`}>PDF formulario + cédula</span>
         )}
       </div>
       {s.valorVehiculo === null && <p className="mt-1.5 text-sm text-texto-2">El PDF del formulario se habilita cuando asignes el valor del vehículo.</p>}

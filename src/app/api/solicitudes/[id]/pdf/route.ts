@@ -7,7 +7,7 @@ import { ErrorPdf, generarDocumento, type TipoPdf } from "@/modulos/pdf/document
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** GET /api/solicitudes/:id/pdf?tipo=formulario|cedula  (solo la asesora) */
+/** GET /api/solicitudes/:id/pdf?tipo=formulario|cedula|completo  (solo la asesora) */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const sesion = await auth.api.getSession({ headers: request.headers });
   if (!sesion) return NextResponse.json({ mensaje: "Inicia sesión." }, { status: 401 });
@@ -16,13 +16,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const { id } = await params;
   const tipo = request.nextUrl.searchParams.get("tipo") as TipoPdf;
-  if (!UUID.test(id) || (tipo !== "formulario" && tipo !== "cedula")) {
+  if (!UUID.test(id) || (tipo !== "formulario" && tipo !== "cedula" && tipo !== "completo")) {
     return NextResponse.json({ mensaje: "Solicitud no válida." }, { status: 400 });
   }
 
   try {
     const doc = await generarDocumento(id, tipo);
-    const accion = tipo === "formulario" ? "PDF del formulario descargado" : "PDF de la cédula descargado";
+    const accion = { formulario: "PDF del formulario descargado", cedula: "PDF de la cédula descargado", completo: "PDF del formulario con la cédula descargado" }[tipo];
     const ip = ipDeLaPeticion(request.headers);
     await Promise.all([
       db.insert(t.historial).values({ solicitudId: id, actor: "asesora", usuarioId: sesion.user.id, descripcion: accion }),

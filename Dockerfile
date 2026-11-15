@@ -24,7 +24,8 @@ FROM herramientas AS builder
 RUN BETTER_AUTH_SECRET=solo-para-compilar-no-se-usa-en-produccion \
     BETTER_AUTH_URL=http://localhost:3000 \
     DATABASE_URL=postgres://build:build@localhost:5432/build \
-    npm run build
+    npm run build \
+ && date -u +%Y-%m-%dT%H:%M:%SZ > .next/standalone/COMPILADA   # la muestra Admin › Sistema
 
 FROM base AS runner
 ENV NODE_ENV=production \
