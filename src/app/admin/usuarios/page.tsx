@@ -5,6 +5,7 @@ import { db } from "@/db";
 import * as t from "@/db/esquema";
 import { haceCuanto } from "@/lib/etiquetas";
 import { Titulo } from "../componentes";
+import { CambiarClave } from "@/componentes/CambiarClave";
 import { AccionesAsesora } from "./clientes";
 
 export default function Usuarios() {
@@ -57,6 +58,8 @@ async function Contenido() {
           );
         })}
       </div>
+      <h2 className="font-display mt-8 mb-2.5 text-[22px] font-semibold">Cambiar mi contraseña</h2>
+      <CambiarClave />
       <h2 className="font-display mt-8 mb-2.5 text-[22px] font-semibold">Seguridad de acceso</h2>
       <ul className="list-disc space-y-1.5 rounded-xl border border-linea bg-superficie py-4 pr-4 pl-8 text-[15px]">
         <li>En producción, el inicio de sesión se bloquea 15 minutos tras 5 intentos fallidos.</li>
