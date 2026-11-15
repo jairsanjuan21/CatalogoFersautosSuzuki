@@ -31,7 +31,7 @@ const RANGOS = [
 ];
 
 const claseSelect =
-  "min-h-10 rounded-full border border-linea-2 bg-superficie px-3.5 text-[15px] data-activo:border-azul data-activo:font-semibold data-activo:text-azul-texto";
+  "min-h-11 rounded-full border-[1.5px] border-linea-2 bg-superficie px-4 text-[15px] transition-colors hover:border-tinta data-activo:border-tinta data-activo:font-semibold data-activo:text-tinta";
 
 /** Grilla con filtros. Se filtra en el navegador: son pocos modelos y así es instantáneo. */
 export function Modelos({ modelos }: { modelos: TarjetaModelo[] }) {
@@ -62,14 +62,14 @@ export function Modelos({ modelos }: { modelos: TarjetaModelo[] }) {
 
   return (
     <>
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pt-3.5 pb-1.5 [scrollbar-width:none]" role="group" aria-label="Filtrar por tipo">
+      <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pt-3.5 pb-1.5 [scrollbar-width:none]" role="group" aria-label="Filtrar por tipo">
         {opciones.map(([valor, texto]) => (
           <button
             key={valor}
             type="button"
             aria-pressed={filtro === valor}
             onClick={() => setFiltro(valor)}
-            className="min-h-10 flex-none rounded-full border border-linea-2 bg-superficie px-3.5 text-[15px] whitespace-nowrap aria-pressed:border-azul aria-pressed:bg-azul aria-pressed:font-semibold aria-pressed:text-white"
+            className="min-h-11 flex-none rounded-full border-[1.5px] border-linea-2 bg-superficie px-4.5 text-[15px] font-semibold whitespace-nowrap text-texto-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-tinta active:scale-95 aria-pressed:border-azul aria-pressed:bg-azul aria-pressed:text-white"
           >
             {texto}
           </button>
@@ -109,47 +109,62 @@ export function Modelos({ modelos }: { modelos: TarjetaModelo[] }) {
           )}
         </p>
       </div>
-      <div className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
-        {visibles.map((m) => (
-          <Link key={m.slug} href={`/modelo/${m.slug}`} className="flex flex-col overflow-hidden rounded-2xl border border-linea bg-superficie hover:border-linea-2">
-            <div className="relative grid aspect-video place-items-center bg-cielo">
-              {m.promocion && <span className="absolute top-2.5 left-2.5 z-10 rounded-md bg-senal-fondo px-2 py-0.5 text-[13px] font-semibold text-senal">{m.promocion}</span>}
-              {m.combustible === "hibrido" && (
-                <span className="absolute top-2.5 right-2.5 z-10 rounded-md bg-ok-fondo px-2 py-0.5 text-[13px] font-semibold text-ok">Híbrido</span>
-              )}
-              {m.foto ? (
-                // eslint-disable-next-line @next/next/no-img-element -- fotos ya optimizadas en WebP con srcset
-                <img src={m.foto.src} srcSet={m.foto.srcSet} sizes="(min-width: 640px) 33vw, 100vw" alt={`Suzuki ${m.linea}`} loading="lazy" className="absolute inset-0 size-full object-cover" />
-              ) : (
-                <Carro tipo={m.tipo} color={m.colores[0]?.hex ?? NEUTRO} className="w-4/5" />
-              )}
-            </div>
-            <div className="flex flex-1 flex-col gap-0.5 px-4 pt-3.5 pb-4">
-              <h3 className="font-display text-[26px] leading-tight font-bold">{m.linea}</h3>
-              <span className="text-sm text-texto-2">{m.tipoTexto}, {m.puestos} puestos</span>
-              {m.colores.length > 0 && (
-                <span className="mt-1.5 flex items-center gap-1" aria-label={`Colores: ${m.colores.map((c) => c.nombre).join(", ")}`}>
-                  {m.colores.slice(0, 6).map((c) => (
-                    <span key={c.nombre} title={c.nombre} className="size-4 rounded-full border border-linea-2" style={{ background: c.hex }} />
-                  ))}
-                  {m.colores.length > 6 && <span className="ml-0.5 text-xs text-texto-2">+{m.colores.length - 6}</span>}
-                </span>
-              )}
-              {m.precio ? (
-                <span className="mt-auto pt-3 font-semibold">
-                  Desde {plata(m.precio)}
-                  {m.nuevoPrecio && <span className="ml-2 inline-block rounded bg-cielo px-1.5 py-0.5 align-middle text-xs whitespace-nowrap text-azul-texto">Nuevo precio</span>}
-                  <small className="block text-[13px] font-normal text-texto-2">{m.versionEntrada ? `Versión ${m.versionEntrada}, con IVA` : "Precio con IVA, según versión"}</small>
-                </span>
-              ) : (
-                <span className="mt-auto pt-3 font-semibold text-azul-texto">
-                  Precio a consultar
-                  <small className="block text-[13px] font-normal text-texto-2">Escríbeme y te cotizo al día</small>
-                </span>
-              )}
-            </div>
-          </Link>
-        ))}
+      <div className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(min(300px,100%),1fr))] gap-6">
+        {visibles.map((m, i) => {
+          const tono = m.colores[0]?.hex ?? NEUTRO;
+          // Sin colores cargados, el fondo usa el tono cálido del catálogo en vez del gris
+          const fondo = m.colores[0] ? `color-mix(in oklab, ${tono} 20%, var(--superficie))` : "var(--cielo)";
+          return (
+            <Link
+              key={m.slug}
+              href={`/modelo/${m.slug}`}
+              className="cat-carta group flex flex-col overflow-hidden rounded-[22px] transition-[transform,box-shadow] duration-300 hover:-translate-y-1.5 hover:shadow-[0_26px_50px_-28px_rgb(20_33_61/0.55)]"
+              style={{ animationDelay: `${Math.min(i, 8) * 70}ms`, background: fondo }}
+            >
+              <div className="relative grid aspect-[16/10] place-items-center overflow-hidden">
+                {m.promocion && <span className="absolute top-3 left-3 z-10 rounded-lg bg-acento px-2.5 py-1 text-[13px] font-bold text-white shadow-sm">{m.promocion}</span>}
+                {m.combustible === "hibrido" && (
+                  <span className="absolute top-3 right-3 z-10 rounded-lg bg-ok-fondo px-2.5 py-1 text-[13px] font-bold text-ok">Híbrido</span>
+                )}
+                {m.foto ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- fotos ya optimizadas en WebP con srcset
+                  <img src={m.foto.src} srcSet={m.foto.srcSet} sizes="(min-width: 640px) 33vw, 100vw" alt={`Suzuki ${m.linea}`} loading="lazy" className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                ) : (
+                  <div className="cat-arranca w-4/5 pt-4">
+                    <Carro tipo={m.tipo} color={tono} className="w-full" />
+                  </div>
+                )}
+              </div>
+              <div className="m-2.5 mt-0 flex flex-1 flex-col gap-0.5 rounded-2xl bg-superficie px-4.5 pt-4 pb-4">
+                <h3 className="font-display text-[28px] leading-tight font-semibold text-tinta">{m.linea}</h3>
+                <span className="text-[15px] text-texto-2">{m.tipoTexto}, {m.puestos} puestos</span>
+                {m.colores.length > 0 && (
+                  <span className="mt-2 flex items-center gap-1.5" aria-label={`Colores: ${m.colores.map((c) => c.nombre).join(", ")}`}>
+                    {m.colores.slice(0, 6).map((c, j) => (
+                      <span key={c.nombre} title={c.nombre} className="size-4 rounded-full border border-linea-2 transition-transform duration-300 group-hover:-translate-y-0.5" style={{ background: c.hex, transitionDelay: `${j * 40}ms` }} />
+                    ))}
+                    {m.colores.length > 6 && <span className="ml-0.5 text-xs text-texto-2">+{m.colores.length - 6}</span>}
+                  </span>
+                )}
+                <div className="mt-auto flex items-end justify-between gap-3 pt-4">
+                  {m.precio ? (
+                    <span className="font-bold text-tinta">
+                      Desde {plata(m.precio)}
+                      {m.nuevoPrecio && <span className="ml-2 inline-block rounded bg-cielo px-1.5 py-0.5 align-middle text-xs whitespace-nowrap text-azul-texto">Nuevo precio</span>}
+                      <small className="block text-[13px] font-normal text-texto-2">{m.versionEntrada ? `Versión ${m.versionEntrada}, con IVA` : "Precio con IVA, según versión"}</small>
+                    </span>
+                  ) : (
+                    <span className="font-bold text-tinta">
+                      Precio a consultar
+                      <small className="block text-[13px] font-normal text-texto-2">Escríbeme y te cotizo al día</small>
+                    </span>
+                  )}
+                  <span aria-hidden className="grid size-10 flex-none place-items-center rounded-full bg-cielo font-bold text-azul-texto transition-all duration-300 group-hover:translate-x-1 group-hover:bg-acento group-hover:text-white">→</span>
+                </div>
+              </div>
+            </Link>
+          );
+        })}
       </div>
       {visibles.length === 0 && (
         <p className="py-8 text-center text-texto-2">
