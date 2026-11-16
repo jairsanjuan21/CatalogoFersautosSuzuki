@@ -73,7 +73,16 @@ async function Contenido() {
     ],
     ["Generador de PDF", "ok", "Funcionando", "Formulario F-NS-01, cédula, y formulario + cédula en un solo archivo."],
     ["Monitoreo del VPS", s.metricas ? "ok" : "gris", s.metricas ? "Conectado" : "Sin configurar", s.metricas ? "Envía las visitas y la actividad al panel de MetricasVPS." : "Opcional: METRICAS_INGESTA_URL y METRICAS_TOKEN."],
-    ["Bot de Telegram", "gris", "Pendiente", "Falta crear el bot con BotFather y conectarlo."],
+    [
+      "Bot de Telegram",
+      !s.telegram.configurado ? "gris" : s.telegram.vinculadoEn ? "ok" : "ambar",
+      !s.telegram.configurado ? "Sin configurar" : s.telegram.vinculadoEn ? "Vinculado" : "Sin vincular",
+      !s.telegram.configurado
+        ? "Crea el bot con @BotFather y pon su token en TELEGRAM_BOT_TOKEN. Entrega a Natalia los PDF de las solicitudes."
+        : s.telegram.vinculadoEn
+          ? `Entrega a Natalia el PDF formulario + cédula desde cada solicitud. Vinculado ${haceCuanto(s.telegram.vinculadoEn)}.`
+          : "El token está puesto. Falta que Natalia lo vincule en Mi perfil › Telegram.",
+    ],
     ["Correo", "gris", "No se usa", "Cada cuenta cambia su contraseña: Natalia en Mi perfil y tú en Usuarios. Si Natalia la olvida, le asignas una nueva en Usuarios."],
   ];
 

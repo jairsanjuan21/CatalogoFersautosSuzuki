@@ -207,6 +207,12 @@ export const configuracion = pgTable(
     comisionMetodo: metodoComision().notNull().default("proporcional"),
     metaVentasMes: smallint(), // vehículos que Natalia quiere vender al mes; null = sin meta
     diasRetencionDocumentos: smallint().notNull().default(90),
+    // Bot de Telegram: chat privado de Natalia donde llegan los PDF de las solicitudes
+    telegramChatId: text(),
+    telegramNombre: text(), // cómo se llama la cuenta vinculada, para que Natalia la reconozca
+    telegramVinculadoEn: timestamp({ withTimezone: true }),
+    telegramCodigo: text(), // código de un solo uso del enlace t.me/bot?start=...
+    telegramCodigoExpira: timestamp({ withTimezone: true }),
     actualizadoEn: actualizadoEn(),
   },
   (t) => [

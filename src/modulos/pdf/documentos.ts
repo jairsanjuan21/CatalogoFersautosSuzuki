@@ -4,6 +4,7 @@ import { PDFDocument } from "pdf-lib";
 import { db } from "@/db";
 import * as t from "@/db/esquema";
 import { almacenamiento } from "@/lib/almacenamiento";
+import { nombreVersion } from "@/lib/formato";
 import { obtenerSolicitudCompleta } from "@/modulos/solicitudes/consultar";
 import { generarFormularioFns01 } from "./formulario-fns01";
 import { generarPdfCedula } from "./cedula";
@@ -97,6 +98,10 @@ export async function generarDocumento(solicitudId: string, tipo: TipoPdf) {
     bytes,
     nombre,
     radicado: s.radicado,
+    // Para el mensaje que acompaña el PDF en Telegram
+    cliente: [s.nombres, s.primerApellido, s.segundoApellido].filter(Boolean).join(" "),
+    vehiculo: s.modelo ? `Suzuki ${s.modelo.linea}${s.version ? ` ${nombreVersion(s.version)}` : ""}` : null,
+    valor: s.valorVehiculo,
     sha256: createHash("sha256").update(bytes).digest("hex"),
   };
 }

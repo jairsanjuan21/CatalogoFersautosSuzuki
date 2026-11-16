@@ -109,6 +109,18 @@ Natalia descarga los PDF desde `GET /api/solicitudes/:id/pdf?tipo=formulario|ced
 cuenta de asesora puede hacerlo, el formulario exige que la solicitud tenga valor del vehículo y
 cada descarga queda en la auditoría con la huella SHA-256 del archivo.
 
+## Bot de Telegram (PDF formulario + cédula)
+
+El bot tiene un solo trabajo: entregarle a Natalia, en su chat privado, el PDF del formulario con la cédula de una solicitud. No responde mensajes ni le escribe a nadie más.
+
+1. En Telegram, abre **@BotFather**, envía `/newbot` y elige el nombre y el usuario del bot (debe terminar en `bot`).
+2. Copia el token que te da y pégalo en el `.env` (local) o `.env.production` (VPS): `TELEGRAM_BOT_TOKEN=...`. No lo subas a GitHub ni lo pegues en chats.
+3. Reinicia la app. En **Admin › Sistema** la fila del bot pasa a "Sin vincular".
+4. Natalia entra a **Mi perfil › Telegram**, toca **Vincular Telegram**, abre el bot y le da **Iniciar**. La página se vincula sola (el enlace sirve 10 minutos y una sola vez, así nadie más puede apropiarse del bot).
+5. En cada solicitud con valor del vehículo y fotos de la cédula, el botón **Enviar a Telegram** le manda el PDF. Queda en el historial de la solicitud y en la auditoría.
+
+No usa webhook: el vínculo se revisa a pedido con `getUpdates`. Si Natalia bloquea el bot o borra el chat, el siguiente envío lo detecta, borra el vínculo y le pide vincular de nuevo.
+
 ## Modelos, versiones y precios
 
 Cada modelo tiene un **precio base** fijo (el "Desde" del catálogo) y varias **versiones**

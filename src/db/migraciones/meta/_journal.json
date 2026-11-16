@@ -148,6 +148,13 @@
       "when": 1794703883079,
       "tag": "0020_descripcion_larga",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794841854192,
+      "tag": "0021_telegram",
+      "breakpoints": true
     }
   ]
 }

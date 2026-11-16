@@ -453,3 +453,75 @@ body {
 /* Opciones de las listas desplegables: como el campo es transparente, en Windows la lista se abría
    con fondo blanco y el texto claro del modo oscuro. Aquí se fija la pareja para que siempre se lea */
 .catalogo select option { background-color: var(--superficie); color: var(--texto); }
+
+/* ===== Botones de acción de la solicitud (Llamar, WhatsApp, PDF, Telegram) =====
+   Al pasar el cursor: el botón se levanta, se tiñe de azul, cruza un brillo
+   y cada ícono hace su propio gesto (el teléfono timbra, el avión despega...). */
+.boton-accion {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.3, 1.35), box-shadow 0.22s ease, border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+.boton-accion::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 45%;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--azul) 16%, transparent), transparent);
+  transform: translateX(-160%) skewX(-18deg);
+}
+.boton-accion .icono-accion { transition: color 0.2s ease; transform-origin: 50% 50%; }
+.boton-accion:focus-visible { outline: 2px solid var(--azul); outline-offset: 2px; }
+.boton-accion:active { transform: translateY(-1px) scale(0.96); transition-duration: 0.08s; }
+
+@media (hover: hover) {
+  .boton-accion:hover {
+    transform: translateY(-3px);
+    border-color: var(--azul);
+    color: var(--azul-texto);
+    background-color: color-mix(in srgb, var(--azul) 6%, var(--superficie));
+    box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--azul) 60%, transparent);
+  }
+  .boton-accion:hover::after { animation: accion-barrido 0.75s ease-out; }
+  .boton-accion:hover [data-anim="timbre"] { animation: accion-timbre 0.6s ease-in-out; transform-origin: 30% 30%; }
+  .boton-accion:hover [data-anim="burbuja"] { animation: accion-burbuja 0.55s cubic-bezier(0.3, 1.6, 0.5, 1); }
+  .boton-accion:hover [data-anim="hoja"] { animation: accion-hoja 0.6s ease-in-out; transform-origin: 50% 100%; }
+  .boton-accion:hover [data-anim="tarjeta"] { animation: accion-tarjeta 0.7s ease-in-out; }
+  .boton-accion:hover [data-anim="pila"] { animation: accion-pila 0.6s cubic-bezier(0.3, 1.5, 0.5, 1); }
+  .boton-accion:hover [data-anim="avion"] { animation: accion-avion 0.85s ease-in-out; }
+}
+@keyframes accion-barrido { to { transform: translateX(330%) skewX(-18deg); } }
+@keyframes accion-timbre { 0%, 100% { transform: rotate(0); } 15% { transform: rotate(-16deg); } 30% { transform: rotate(14deg); } 45% { transform: rotate(-10deg); } 60% { transform: rotate(7deg); } 75% { transform: rotate(-3deg); } }
+@keyframes accion-burbuja { 0% { transform: scale(1); } 40% { transform: scale(1.25) translateY(-2px); } 70% { transform: scale(0.94); } 100% { transform: scale(1); } }
+@keyframes accion-hoja { 0%, 100% { transform: none; } 45% { transform: translateY(-4px) rotate(-7deg); } 70% { transform: translateY(-1px) rotate(3deg); } }
+@keyframes accion-tarjeta { from { transform: perspective(60px) rotateY(0); } to { transform: perspective(60px) rotateY(360deg); } }
+@keyframes accion-pila { 0%, 100% { transform: none; } 35% { transform: translateY(-5px) scale(1.12); } 65% { transform: translateY(1px) scale(0.97); } }
+@keyframes accion-avion {
+  0% { transform: none; opacity: 1; }
+  40% { transform: translate(16px, -16px) scale(0.7); opacity: 0; }
+  41% { transform: translate(-16px, 16px) scale(0.7); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+
+/* Estados del botón de Telegram */
+.boton-accion[data-estado="enviado"] { border-color: var(--ok); color: var(--ok); background-color: color-mix(in srgb, var(--ok) 9%, var(--superficie)); }
+.boton-accion__giro { animation: accion-giro 0.8s linear infinite; }
+@keyframes accion-giro { to { transform: rotate(360deg); } }
+.boton-accion__chulo path { stroke-dasharray: 24; stroke-dashoffset: 24; animation: accion-chulo 0.45s 0.05s ease-out forwards; }
+@keyframes accion-chulo { to { stroke-dashoffset: 0; } }
+.boton-accion__aviso { animation: accion-aviso 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.3); }
+@keyframes accion-aviso { from { opacity: 0; transform: translateY(16px) scale(0.96); } }
+
+/* Tarjeta de Telegram en Mi perfil: el punto late mientras espera que Natalia le dé "Iniciar" */
+.telegram-espera { animation: accion-latido 1.4s ease-in-out infinite; }
+@keyframes accion-latido { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--azul) 55%, transparent); } 50% { box-shadow: 0 0 0 7px transparent; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .boton-accion, .boton-accion:hover, .boton-accion:active { transform: none; transition: border-color 0.2s, background-color 0.2s, color 0.2s; }
+  .boton-accion::after, .boton-accion .icono-accion, .boton-accion__aviso, .telegram-espera { animation: none !important; }
+  .boton-accion__chulo path { animation: none; stroke-dashoffset: 0; }
+  .boton-accion__giro { animation-duration: 2s; }
+}

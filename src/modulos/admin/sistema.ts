@@ -33,7 +33,7 @@ async function fechaCompilacion(): Promise<Date | null> {
 export async function estadoSistema() {
   const local = (process.env.ALMACENAMIENTO ?? "local") === "local";
   const produccion = process.env.NODE_ENV === "production";
-  const [[bd], [docs], [solicitudes], [fotos], [auditoria], retencion, publico, ia, [lista], [modelos], [versiones], compilada] = await Promise.all([
+  const [[bd], [docs], [solicitudes], [fotos], [auditoria], retencion, publico, ia, [lista], [modelos], [versiones], compilada, [conf]] = await Promise.all([
     db.execute<{ tamano: string }>(sql`select pg_size_pretty(pg_database_size(current_database())) as tamano`).then((r) => r.rows),
     db.select({ n: count(), bytes: sum(t.documentos.tamanoBytes) }).from(t.documentos).where(isNull(t.documentos.eliminadoEn)),
     db.select({ n: count() }).from(t.solicitudes),
@@ -52,6 +52,7 @@ export async function estadoSistema() {
       .leftJoin(t.preciosVigentes, eq(t.preciosVigentes.versionId, t.versiones.id))
       .where(and(eq(t.versiones.visible, true), eq(t.modelos.visible, true), eq(t.modelos.archivado, false))),
     fechaCompilacion(),
+    db.select({ telegramVinculadoEn: t.configuracion.telegramVinculadoEn }).from(t.configuracion).limit(1),
   ]);
   return {
     tamanoBd: bd?.tamano ?? "?",
@@ -66,6 +67,7 @@ export async function estadoSistema() {
     lista: lista ?? null,
     catalogo: { modelos: modelos.n, versiones: versiones.total, conPrecio: versiones.conPrecio },
     metricas: !!(process.env.METRICAS_INGESTA_URL && process.env.METRICAS_TOKEN),
+    telegram: { configurado: !!process.env.TELEGRAM_BOT_TOKEN?.trim(), vinculadoEn: conf?.telegramVinculadoEn ?? null },
     compilada,
     node: process.version,
     entorno: produccion ? "producción" : "desarrollo",

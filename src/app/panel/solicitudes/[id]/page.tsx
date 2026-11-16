@@ -11,6 +11,8 @@ import { detalleSolicitud } from "@/modulos/solicitudes/panel";
 import { Cargando, EstadoBadge } from "../../componentes";
 import { BotonCargada, FormularioEstado, FormularioNota, FormularioValor, MarcarVista } from "./clientes";
 import { EliminarSolicitud } from "./EliminarSolicitud";
+import { BotonTelegram } from "./BotonTelegram";
+import { IconoAccion } from "./iconos";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Lista de ejemplo mientras Natalia confirma con qué entidades trabaja
@@ -68,7 +70,8 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
   const tieneCedula = s.documentos.some((d) => (d.tipo === "cedula_frente" || d.tipo === "cedula_reves") && !d.eliminadoEn);
   const mensajeWa = encodeURIComponent(`Hola ${s.nombres.split(" ")[0]}, te escribe Natalia de Fersautos Suzuki sobre tu solicitud ${s.radicado}.`);
   const ref = (tipo: string) => s.referencias.find((r) => r.tipo === tipo);
-  const boton = "flex min-h-[62px] flex-col items-center justify-center gap-0.5 rounded-lg border border-linea-2 bg-superficie px-1.5 text-[13px] font-semibold";
+  const completo = s.valorVehiculo !== null && tieneCedula;
+  const boton = "flex min-h-[72px] flex-col items-center justify-center gap-1 rounded-lg border border-linea-2 bg-superficie px-1.5 text-center text-[13px] leading-tight font-semibold";
 
   return (
     <>
@@ -99,24 +102,49 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
         ))}
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
-        <a href={`tel:+57${s.celular}`} className={boton}>Llamar</a>
-        <a href={`https://wa.me/57${s.celular}?text=${mensajeWa}`} target="_blank" rel="noopener noreferrer" className={boton}>WhatsApp</a>
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <a href={`tel:+57${s.celular}`} className={`${boton} boton-accion`}>
+          <IconoAccion anim="timbre" />
+          Llamar
+        </a>
+        <a href={`https://wa.me/57${s.celular}?text=${mensajeWa}`} target="_blank" rel="noopener noreferrer" className={`${boton} boton-accion`}>
+          <IconoAccion anim="burbuja" />
+          WhatsApp
+        </a>
         {s.valorVehiculo !== null ? (
-          <a href={`/api/solicitudes/${s.id}/pdf?tipo=formulario`} className={boton}>PDF formulario</a>
+          <a href={`/api/solicitudes/${s.id}/pdf?tipo=formulario`} className={`${boton} boton-accion`}>
+            <IconoAccion anim="hoja" />
+            PDF formulario
+          </a>
         ) : (
-          <span aria-disabled className={`${boton} opacity-50`}>PDF formulario</span>
+          <span aria-disabled className={`${boton} opacity-50`}>
+            <IconoAccion anim="hoja" />
+            PDF formulario
+          </span>
         )}
         {tieneCedula ? (
-          <a href={`/api/solicitudes/${s.id}/pdf?tipo=cedula`} className={boton}>PDF cédula</a>
+          <a href={`/api/solicitudes/${s.id}/pdf?tipo=cedula`} className={`${boton} boton-accion`}>
+            <IconoAccion anim="tarjeta" />
+            PDF cédula
+          </a>
         ) : (
-          <span aria-disabled className={`${boton} opacity-50`}>PDF cédula</span>
+          <span aria-disabled className={`${boton} opacity-50`}>
+            <IconoAccion anim="tarjeta" />
+            PDF cédula
+          </span>
         )}
-        {s.valorVehiculo !== null && tieneCedula ? (
-          <a href={`/api/solicitudes/${s.id}/pdf?tipo=completo`} className={`${boton} col-span-2 sm:col-span-1`}>PDF formulario + cédula</a>
+        {completo ? (
+          <a href={`/api/solicitudes/${s.id}/pdf?tipo=completo`} className={`${boton} boton-accion`}>
+            <IconoAccion anim="pila" />
+            PDF formulario + cédula
+          </a>
         ) : (
-          <span aria-disabled className={`${boton} col-span-2 opacity-50 sm:col-span-1`}>PDF formulario + cédula</span>
+          <span aria-disabled className={`${boton} opacity-50`}>
+            <IconoAccion anim="pila" />
+            PDF formulario + cédula
+          </span>
         )}
+        <BotonTelegram solicitudId={s.id} listo={completo} vinculado={!!conf?.telegramChatId} clase={boton} />
       </div>
       {s.valorVehiculo === null && <p className="mt-1.5 text-sm text-texto-2">El PDF del formulario se habilita cuando asignes el valor del vehículo.</p>}
 
