@@ -17,6 +17,8 @@ export type EventoMetricas = {
   nombre?: string;
   dispositivo: string;
   escribiendo?: boolean;
+  /** De qué red llegó (instagram, whatsapp…) o "directo". Solo la palabra. */
+  origen?: string;
 };
 
 const URL_INGESTA = process.env.METRICAS_INGESTA_URL;

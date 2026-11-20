@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 import { auth } from "@/lib/auth";
 import { ipDeLaPeticion, permitir } from "@/lib/limite";
+import { COOKIE_ORIGEN, esCampana } from "@/lib/origen";
 import { COOKIE_PRESENCIA, SID_VALIDO, describirDispositivo, esBot, reportarAMetricas } from "@/lib/metricas";
 
 /**
@@ -43,6 +44,17 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  reportarAMetricas({ tipo, sid, ruta, rol, nombre, dispositivo: describirDispositivo(ua), escribiendo: cuerpo.escribiendo === true });
+  const guardado = request.cookies.get(COOKIE_ORIGEN)?.value;
+  const origen = esCampana(guardado) ? guardado : "directo";
+  reportarAMetricas({
+    tipo,
+    sid,
+    ruta,
+    rol,
+    nombre,
+    dispositivo: describirDispositivo(ua),
+    escribiendo: cuerpo.escribiendo === true,
+    origen,
+  });
   return vacia;
 }
